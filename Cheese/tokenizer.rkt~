@@ -1,0 +1,13 @@
+#lang racket
+
+(define in (open-input-file "test.txt"))
+
+(define text '())
+
+(define fill_text (file)
+  (let ([pos (read-char file)]
+        (cond [(false? (eof-object? pos)) 
+        
+
+
+(define (op '(#\+ #\- #\* #\/ #\=)))
