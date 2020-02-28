@@ -22,7 +22,7 @@
 
 (define (an_int digits) (string-append "Integer_token(" digits ")"))
 (define (a_string s) (string-append "String_token(" s ")"))
-(define (a_bool b) (string-append "Boolean_token(" b ")"))
+(define (a_bool b) (string-append "Boolean_token(" (list->string b) ")"))
 
 (define (a_token t) (not (void? t)))
 
@@ -35,19 +35,24 @@
 
 (define (String_Token txt pos val tokens)
   (let ([character (item txt pos)])
-    (if (is_letter character)
+    (unless (is_quotation character)
         (String_Token txt (+ pos 1) (concat val character) tokens)
         (when (> (string-length val) 0)
-          (cond
-            [(is_bool val)  (tokenizer txt pos (length txt) (append tokens (list (a_bool val))))]
-            [else (tokenizer txt pos (length txt) (append tokens (list (a_string val))))])))))
+          (tokenizer txt pos (length txt) (append tokens (list (a_string val)) (list "Quotation_token")))))))
+
+(define (Boolean_Token txt pos val tokens)
+  (let ([t (take-right txt (- (length txt) pos))])
+    (cond
+      [(list-prefix? (list #\T #\r #\u #\e) t) (tokenizer txt (+ pos 4) (length txt) (append tokens (list (a_bool (take t 4)))))]
+      [(list-prefix? (list #\F #\a #\l #\s #\e) t) (tokenizer txt (+ pos 5) (length txt) (append tokens (list (a_bool (take t 5)))))]
+      [else (tokenizer txt pos (length txt) tokens)])))
 
 (define (Quotation_Token txt pos val tokens)
   (let ([q (item txt pos)])
     (if (is_quotation q)
         (Quotation_Token txt (+ pos 1) (concat val q) tokens)
         (when (> (string-length val) 0)
-          (tokenizer txt pos (length txt) (append tokens (list "Quotation_token")))))))
+          (String_Token txt pos "" (append tokens (list "Quotation_token")))))))
 
 (define (LeftParen_Token txt pos val tokens)
   (let ([p (item txt pos)])
@@ -70,9 +75,9 @@
           [(or (= c 10) (= c 32)) (tokenizer txt (+ pos 1) end tokens)]
           [(is_leftparen c) (LeftParen_Token txt pos "" tokens)]
           [(is_rightparen c) (RightParen_Token txt pos "" tokens)]
-          [(is_int c) (Integer_Token txt pos "" tokens)]
           [(is_quotation c) (Quotation_Token txt pos "" tokens)]
-          [else (String_Token txt pos "" tokens)]))
+          [(is_int c) (Integer_Token txt pos "" tokens)]
+          [else (Boolean_Token txt pos "" tokens)]))
       tokens))
 
 (let ([characters (text in)])
