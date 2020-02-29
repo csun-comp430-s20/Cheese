@@ -1,4 +1,13 @@
-435
-True
-1234
-fdafd
+(= x "aaaaaabbb")
+(44 - 3434)
+ab(2 + 3)
+(= c (3/4) if True else 0)    (or A B) ((print "hello") if A else fail)
+a(g b)
+{
+   (+ g 1)
+   (+ b g)
+   c(f)
+   {
+      ((print "yay") if f else (print "damn"))
+   }
+}
