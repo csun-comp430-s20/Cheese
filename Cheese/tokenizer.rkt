@@ -16,7 +16,6 @@
 
 (define (is_int n) (and (> n 47) (< n 58)))
 (define (is_letter s) (or (and (> s 64) (< s 91)) (and (> s 96) (< s 123))))
-(define (is_bool b) (or (string=? b "True") (string=? b "False")))
 (define (is_quotation q) (= q 34))
 (define (is_leftparen p) (= p 40))
 (define (is_rightparen p) (= p 41))
@@ -43,7 +42,7 @@
   (if (< pos end)
     (let ([num (item pos)])
       (if (is_int num)
-          (Integer_Token (+ pos 1) (concat val num) tokens)
+          (Integer_Token (add1 pos) (concat val num) tokens)
           (Quotation_Token pos "" (add_token val tokens an_int))))
     tokens))
 
@@ -177,7 +176,6 @@
     tokens))
 
 
-(define (tokenizer pos tokens)
-  (Integer_Token pos "" tokens))
+(define (tokenizer pos) (Integer_Token pos "" '()))
 
-(tokenizer 0 '())
+(tokenizer 0)
