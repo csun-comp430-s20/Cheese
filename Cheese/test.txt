@@ -8,6 +8,7 @@ a(g b)
    (+ b g)
    c(f)
    {
-      ((print "yay") if f else (print "damn"))
+      ((print "yay") if not f and b else (print "damn"))
    }
 }
+*
