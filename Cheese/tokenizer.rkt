@@ -31,6 +31,12 @@
 (define (is_print p) (list-prefix? (list #\p #\r #\i #\n #\t) p))
 (define (is_not n) (list-prefix? (list #\n #\o #\t) n))
 (define (is_and a) (list-prefix? (list #\a #\n #\d) a))
+(define (is_function f) (list-prefix? (list #\d #\e #\f) f))
+(define (is_typeInt i) (list-prefix? (list #\i #\n #\t) i))
+(define (is_typeString s) (list-prefix? (list #\s #\t #\r #\i #\n #\g) s))
+(define (is_enum e) (list-prefix? (list #\e #\n #\u #\m) e))
+(define (is_case c) (list-prefix? (list #\c #\a #\s #\e) c))
+(define (is_switch s) (list-prefix? (list #\s #\w #\i #\t #\c #\h) s))
 
 (define (an_int digits) (string-append "Integer_token(" digits ")"))
 (define (a_string s) (string-append "String_token(" s ")"))
@@ -41,6 +47,7 @@
 (define (add_token t tokens op) (if (> (string-length t) 0) (append tokens (list (op t))) tokens))
 
 (define (chopped pos) (take-right characters (- end pos)))
+
 
 (define (Integer_Token pos val tokens)
   (if (< pos end)
@@ -126,9 +133,45 @@
 (define (And_Token pos tokens)
   (if (< pos end)
       (if (is_and (chopped pos))
-          (Identifier_Token (+ pos 3) "" (append tokens (list "And_token")))
-          (Identifier_Token pos "" tokens))
+          (Type_Token (+ pos 3) (append tokens (list "And_token")))
+          (Type_Token pos tokens))
   tokens))
+
+(define (Type_Token pos tokens)
+  (if (< pos end)
+      (cond
+        [(is_typeInt (chopped pos)) (Function_Token (+ pos 3) "" (append tokens (list "Type_token(int)")))]
+        [(is_typeString (chopped pos)) (Function_Token (+ pos 6) "" (append tokens (list "Type_token(string)")))]
+        [else (Function_Token pos tokens)])
+      tokens))
+
+(define (Function_Token pos tokens)
+  (if (< pos end)
+      (if (is_function (chopped pos))
+          (Enum_Token (+ pos 3) (append tokens (list "Function_token")))
+          (Enum_Token pos tokens))
+      tokens))
+
+(define (Enum_Token pos tokens)
+  (if (< pos end)
+      (if (is_enum (chopped pos))
+          (Case_Token (+ pos 4) (append tokens (list "Enum_token")))
+          (Case_Token pos tokens))
+      tokens))
+
+(define (Case_Token pos tokens)
+  (if (< pos end)
+      (if (is_case (chopped pos))
+          (Switch_Token (+ pos 4) (append tokens (list "Case_token")))
+          (Switch_Token pos tokens))
+      tokens))
+
+(define (Switch_Token pos tokens)
+  (if (< pos end)
+      (if (is_case (chopped pos))
+          (Identifier_Token (+ pos 6) "" (append tokens (list "Switch_token")))
+          (Identifier_Token pos "" tokens))
+      tokens))
 
 (define (Identifier_Token pos val tokens)
   (if (< pos end)
