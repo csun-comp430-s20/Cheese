@@ -21,23 +21,23 @@
 (define (is_rightparen p) (= p 41))
 (define (is_blank b) (or (= b 10) (= b 32)))
 (define (is_operator o) (list? (member o (list 42 43 45 47 60 61 62))))
-(define (is_while w) (list-prefix? (list  #\w #\h #\i #\l #\e #\space) w))
-(define (is_if i) (list-prefix? (list #\i #\f #\space) i))
-(define (is_else e) (list-prefix? (list #\e #\l #\s #\e #\space) e))
-(define (is_or o) (list-prefix? (list #\o #\r #\space) o))
-(define (is_fail f) (list-prefix? (list #\f #\a #\i #\l #\space) f))
+(define (is_while w) (list-prefix? (list  #\w #\h #\i #\l #\e) w))
+(define (is_if i) (list-prefix? (list #\i #\f) i))
+(define (is_else e) (list-prefix? (list #\e #\l #\s #\e) e))
+(define (is_or o) (list-prefix? (list #\o #\r) o))
+(define (is_fail f) (list-prefix? (list #\f #\a #\i #\l) f))
 (define (is_leftCurlyBracket l) (= l 123))
 (define (is_rightCurlyBracket r) (= r 125))
-(define (is_print p) (list-prefix? (list #\p #\r #\i #\n #\t #\space) p))
-(define (is_not n) (list-prefix? (list #\n #\o #\t #\space) n))
-(define (is_and a) (list-prefix? (list #\a #\n #\d #\space ) a))
-(define (is_function f) (list-prefix? (list #\d #\e #\f #\space) f))
-(define (is_typeInt i) (list-prefix? (list #\i #\n #\t #\space) i))
-(define (is_typeString s) (list-prefix? (list #\s #\t #\r #\i #\n #\g #\space) s))
-(define (is_enum e) (list-prefix? (list #\e #\n #\u #\m #\space) e))
-(define (is_case c) (list-prefix? (list #\c #\a #\s #\e #\space) c))
-(define (is_switch s) (list-prefix? (list #\s #\w #\i #\t #\c #\h #\space) s))
-(define (is_default d) (list-prefix? (list #\d #\e #\a #\u #\l #\t #\space) d))
+(define (is_print p) (list-prefix? (list #\p #\r #\i #\n #\t) p))
+(define (is_not n) (list-prefix? (list #\n #\o #\t) n))
+(define (is_and a) (list-prefix? (list #\a #\n #\d) a))
+(define (is_function f) (list-prefix? (list #\d #\e #\f) f))
+(define (is_typeInt i) (list-prefix? (list #\i #\n #\t) i))
+(define (is_typeString s) (list-prefix? (list #\s #\t #\r #\i #\n #\g) s))
+(define (is_enum e) (list-prefix? (list #\e #\n #\u #\m) e))
+(define (is_case c) (list-prefix? (list #\c #\a #\s #\e) c))
+(define (is_switch s) (list-prefix? (list #\s #\w #\i #\t #\c #\h) s))
+(define (is_default d) (list-prefix? (list #\d #\e #\a #\u #\l #\t) d))
 (define (is_other o) (cond
                        [(list? (member o (range 10))) #t]
                        [(list? (member o (range 11 32))) #t]
@@ -83,8 +83,8 @@
   (if (< pos end)
     (let ([t (chopped pos)])
       (cond
-        [(list-prefix? (list #\T #\r #\u #\e #\space) t) (Boolean_Token (+ pos 4) (append tokens (list (a_bool (take t 4)))))]
-        [(list-prefix? (list #\F #\a #\l #\s #\e #\space) t) (Boolean_Token (+ pos 5) (append tokens (list (a_bool (take t 5)))))]
+        [(list-prefix? (list #\T #\r #\u #\e) t) (Boolean_Token (+ pos 4) (append tokens (list (a_bool (take t 4)))))]
+        [(list-prefix? (list #\F #\a #\l #\s #\e) t) (Boolean_Token (+ pos 5) (append tokens (list (a_bool (take t 5)))))]
         [else (While_Token pos tokens)]))
     tokens))
 

@@ -13,3 +13,22 @@ a(g b)
 }
 *
 !
+
+435
+True
+fdafd
+while
+
+"while"
+
+if( fail )( if 
+else else 
+
+ifif 
+
+whileifelseTrue34
+
+
+falseFalse12trueTrue
+
+"fgd'f"
