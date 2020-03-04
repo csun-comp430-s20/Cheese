@@ -7,186 +7,244 @@
      (if (not (eof-object? character)) (fill_text file (append txt (list character))) txt)))
    
 (define (text file) (fill_text file '()))
+(define characters (text in))
+(define end (length characters))
 
-
-(define (item txt pos) (char->integer (list-ref txt pos)))
+(define (item pos) (char->integer (list-ref characters pos)))
 (define (to_string n) (string (integer->char n)))
 (define (concat val x) (string-append val (to_string x)))
 
 (define (is_int n) (and (> n 47) (< n 58)))
 (define (is_letter s) (or (and (> s 64) (< s 91)) (and (> s 96) (< s 123))))
-(define (is_bool b) (or (string=? b "True") (string=? b "False")))
 (define (is_quotation q) (= q 34))
 (define (is_leftparen p) (= p 40))
 (define (is_rightparen p) (= p 41))
+(define (is_blank b) (or (= b 10) (= b 32)))
+(define (is_operator o) (list? (member o (list 42 43 45 47 60 61 62))))
+(define (is_while w) (list-prefix? (list  #\w #\h #\i #\l #\e #\space) w))
+(define (is_if i) (list-prefix? (list #\i #\f #\space) i))
+(define (is_else e) (list-prefix? (list #\e #\l #\s #\e #\space) e))
+(define (is_or o) (list-prefix? (list #\o #\r #\space) o))
+(define (is_fail f) (list-prefix? (list #\f #\a #\i #\l #\space) f))
+(define (is_leftCurlyBracket l) (= l 123))
+(define (is_rightCurlyBracket r) (= r 125))
+(define (is_print p) (list-prefix? (list #\p #\r #\i #\n #\t #\space) p))
+(define (is_not n) (list-prefix? (list #\n #\o #\t #\space) n))
+(define (is_and a) (list-prefix? (list #\a #\n #\d #\space ) a))
+(define (is_function f) (list-prefix? (list #\d #\e #\f #\space) f))
+(define (is_typeInt i) (list-prefix? (list #\i #\n #\t #\space) i))
+(define (is_typeString s) (list-prefix? (list #\s #\t #\r #\i #\n #\g #\space) s))
+(define (is_enum e) (list-prefix? (list #\e #\n #\u #\m #\space) e))
+(define (is_case c) (list-prefix? (list #\c #\a #\s #\e #\space) c))
+(define (is_switch s) (list-prefix? (list #\s #\w #\i #\t #\c #\h #\space) s))
+(define (is_default d) (list-prefix? (list #\d #\e #\a #\u #\l #\t #\space) d))
+(define (is_other o) (cond
+                       [(list? (member o (range 10))) #t]
+                       [(list? (member o (range 11 32))) #t]
+                       [(list? (member o (list 33 35 36 37 38 39 44 46 47 58 59 63 64 124 126 127))) #t]
+                       [(list? (member o (range 91 97))) #t]
+                       [else #f]))
 
 (define (an_int digits) (string-append "Integer_token(" digits ")"))
 (define (a_string s) (string-append "String_token(" s ")"))
 (define (a_bool b) (string-append "Boolean_token(" (list->string b) ")"))
+(define (an_ident i) (string-append "Identifier_token(" i ")"))
+(define (an_operator o) (string-append "Operator_token(" o ")"))
 
-(define (a_token t) (not (void? t)))
+(define (add_token t tokens op) (if (> (string-length t) 0) (append tokens (list (op t))) tokens))
 
-; integer Token
-
-(define (Integer_Token txt pos val tokens)
-  (let ([num (item txt pos)])
-    (if (is_int num)
-        (Integer_Token txt (+ pos 1) (concat val num) tokens)
-        (when (> (string-length val) 0)
-          (tokenizer txt pos (length txt) (append tokens (list (an_int val))))))))
-
-; String Token
-
-(define (String_Token txt pos val tokens)
-  (let ([character (item txt pos)])
-    (unless (is_quotation character)
-        (String_Token txt (+ pos 1) (concat val character) tokens)
-        (when (> (string-length val) 0)
-          (tokenizer txt pos (length txt) (append tokens (list (a_string val)) (list "Quotation_token")))))))
-
-; Boolean Token
-
-(define (Boolean_Token txt pos val tokens)
-  (let ([t (take-right txt (- (length txt) pos))])
-    (cond
-      [(list-prefix? (list #\T #\r #\u #\e) t) (tokenizer txt (+ pos 4) (length txt) (append tokens (list (a_bool (take t 4)))))]
-      [(list-prefix? (list #\F #\a #\l #\s #\e) t) (tokenizer txt (+ pos 5) (length txt) (append tokens (list (a_bool (take t 5)))))]
-      [else (tokenizer txt pos (length txt) tokens)])))
-
-; Quotation Token
-(define (Quotation_Token txt pos val tokens)
-  (let ([q (item txt pos)])
-    (if (is_quotation q)
-        (Quotation_Token txt (+ pos 1) (concat val q) tokens)
-        (when (> (string-length val) 0)
-          (String_Token txt pos "" (append tokens (list "Quotation_token")))))))
-
-; ( Token
-
-(define (LeftParen_Token txt pos val tokens)
-  (let ([p (item txt pos)])
-    (if (is_leftparen p)
-        (LeftParen_Token txt (+ pos 1) (concat val p) tokens)
-        (when (> (string-length val) 0)
-          (tokenizer txt pos (length txt) (append tokens (list "LeftParen_token")))))))
-
-; ) Token
-
-(define (RightParen_Token txt pos val tokens)
-  (let ([p (item txt pos)])
-    (if (is_rightparen p)
-        (RightParen_Token txt (+ pos 1) (concat val p) tokens)
-        (when (> (string-length val) 0)
-          (tokenizer txt pos (length txt) (append tokens (list "RightParen_token")))))))
-
-; Identifier Token
-
-(define (Identifier_Token txt pos val tokens)
-  (let ([p (item txt pos)])
-    (if (is_Identifier p)
-        (Identifier_Token txt (+ pos 1) (concat val p) tokens)
-        (when (> (string-length val) 0)
-          (tokenizer txt pos (length txt) (append tokens (list "Identifier_token")))))))
+(define (chopped pos) (take-right characters (- end pos)))
 
 
-; While Token
-(define (while_Token txt pos val tokens)
-  (let ([c1 (item txt pos)])
-    (if (= c1 119) ; if 'w'
-        (let ([c2 (item txt (+ pos 1))])
-          (if (= c2 104) ; if 'h'
-              (let ([c3 (item txt (+ pos 2))])
-                (if ( = c3 105) ; if 'i'
-                (let ([c4 (item txt (+ pos 3))])
-                  (if (= c4 108) ; if 'l'
-                  (let ([c5 (item txt (+ pos 4))])
-                    (if (= c5 101) ; if 'e'
-                    (let ([c6 (item txt (+ pos 5))])
-                      (if ( = c6 32) ; if 'while '
-                      (tokenizer txt pos (length txt) (append tokens (list "While_Token")))
-                      (printf "") ; else for ' '
-                      ))
-                    (printf "") ; else for e
-                    ))
-                  (printf "") ; else for l
-                  ))
-                (printf "") ; else for i
-                ))
-              (printf "") ; else for h
-              ))
-          (printf "") ; else for w
-          ))
-    )
-
-; If Token
-(define (if_Token txt pos val tokens)
-  (let ([c1 (item txt pos)])
-    (if (= c1 105) ; if 'i'
-        (let ([c2 (item txt (+ pos 1))])
-          (if (= c2 102) ; if 'f'
-              (let ([c3 (item txt (+ pos 2))])
-                (if ( = c3 32) ; if 'if '
-                (tokenizer txt pos (length txt) (append tokens (list "If_Token")))
-                (printf "") ; else for ' '
-                ))
-              (printf "") ; else for 'f'
-              ))
-        (printf "") ; else for 'i'
-        ))
-  )
-
-; Else Token
-(define (else_Token txt pos val tokens)
-  (let ([c1 (item txt pos)])
-    (if (= c1 101) ; if 'e'
-        (let ([c2 (item txt (+ pos 1))])
-          (if (= c2 108) ; if 'l'
-              (let ([c3 (item txt (+ pos 2))])
-                (if ( = c3 115) ; if 's'
-                    (let ([c4 (item txt (+ pos 3))])
-                      (if ( = c4 101) ; if 'e'
-                          (let ([c5 (item txt (+ pos 4))])
-                            (if (= c5 32) ; if 'else '
-                                (tokenizer txt pos (length txt) (append tokens (list "If_Token")))
-                                (printf "") ; else for ' '
-                                ))
-                          (printf "") ; else for 'e'
-                          ))
-                    (printf "") ; else for 's'
-                    ))
-              (printf "") ; else for 'l'
-              ))
-        (printf "") ; else for 'e'
-        ))
-  )
-
-
-; Operator Token
-
-(define (Operator_Token txt pos val tokens)
-  (let ([p (item txt pos)])
-    (if (is_Operator p)
-        (Operator_Token txt (+ pos 1) (concat val p) tokens)
-        (when (> (string-length val) 0)
-          (tokenizer txt pos (length txt) (append tokens (list "Operator_token")))))))
-
-(define (tokenizer txt pos end tokens)
+(define (Integer_Token pos val tokens)
   (if (< pos end)
-      (let ([c (item txt pos)])
-        (cond
-          [(or (= c 10) (= c 32)) (tokenizer txt (+ pos 1) end tokens)]
-          [(is_leftparen c) (LeftParen_Token txt pos "" tokens)]
-          [(is_rightparen c) (RightParen_Token txt pos "" tokens)]
-          [(is_quotation c) (Quotation_Token txt pos "" tokens)]
-          [(is_int c) (Integer_Token txt pos "" tokens)]
-		  [(is_Operator c) (Operator_Token txt pos "" tokens)]
-		  [(is_Identifier c) (Identifier_Token txt pos "" tokens)]		  
-			
-			
-          [else (Boolean_Token txt pos "" tokens)]))
+    (let ([num (item pos)])
+      (if (is_int num)
+          (Integer_Token (add1 pos) (concat val num) tokens)
+          (Quotation_Token pos "" (add_token val tokens an_int))))
+    tokens))
+
+(define (Quotation_Token pos val tokens)
+  (if (< pos end)
+      (if (is_quotation (item pos))
+          (String_Token (add1 pos) "" (append tokens (list "Quotation_token")))
+          (Boolean_Token pos tokens))
       tokens))
 
+(define (String_Token pos val tokens)
+  (if (< pos end)
+    (let ([character (item pos)])
+      (if (not (is_quotation character))
+        (String_Token (add1 pos) (concat val character) tokens)
+        (Boolean_Token (add1 pos) (append tokens (list (a_string val)) (list "Quotation_token")))))
+    tokens))
 
+(define (Boolean_Token pos tokens)
+  (if (< pos end)
+    (let ([t (chopped pos)])
+      (cond
+        [(list-prefix? (list #\T #\r #\u #\e #\space) t) (Boolean_Token (+ pos 4) (append tokens (list (a_bool (take t 4)))))]
+        [(list-prefix? (list #\F #\a #\l #\s #\e #\space) t) (Boolean_Token (+ pos 5) (append tokens (list (a_bool (take t 5)))))]
+        [else (While_Token pos tokens)]))
+    tokens))
 
-(let ([characters (text in)])
-  (tokenizer characters 0 (length characters) '()))
+(define (While_Token pos tokens)
+  (if (< pos end)
+        (if (is_while (chopped pos))
+            (If_Token (+ pos 5) (append tokens (list "While_token")))
+            (If_Token pos tokens))
+        tokens))
+
+(define (If_Token pos tokens)
+  (if (< pos end)
+      (if (is_if (chopped pos))
+          (Else_Token (+ pos 2) (append tokens (list "If_token")))
+          (Else_Token pos tokens))
+      tokens))
+
+(define (Else_Token pos tokens)
+  (if (< pos end)
+      (if (is_else (chopped pos))
+          (Or_Token (+ pos 4) (append tokens (list "Else_token")))
+          (Or_Token pos tokens))
+      tokens))
+
+(define (Or_Token pos tokens)
+  (if (< pos end)
+      (if (is_or (chopped pos))
+          (Fail_Token (+ pos 2) (append tokens (list "Or_token")))
+          (Fail_Token pos tokens))
+      tokens))
+
+(define (Fail_Token pos tokens)
+  (if (< pos end)
+      (if (is_fail (chopped pos))
+          (Print_Token (+ pos 4) (append tokens (list "Fail_token")))
+          (Print_Token pos tokens))
+      tokens))
+
+(define (Print_Token pos tokens)
+  (if (< pos end)
+      (if (is_print (chopped pos))
+          (Not_Token (+ pos 5) (append tokens (list "Print_token")))
+          (Not_Token pos tokens))
+      tokens))
+
+(define (Not_Token pos tokens)
+  (if (< pos end)
+      (if (is_not (chopped pos))
+          (And_Token (+ pos 3) (append tokens (list "Not_token")))
+          (And_Token pos tokens))
+  tokens))
+
+(define (And_Token pos tokens)
+  (if (< pos end)
+      (if (is_and (chopped pos))
+          (Type_Token (+ pos 3) (append tokens (list "And_token")))
+          (Type_Token pos tokens))
+  tokens))
+
+(define (Type_Token pos tokens)
+  (if (< pos end)
+      (cond
+        [(is_typeInt (chopped pos)) (Function_Token (+ pos 3) "" (append tokens (list "Type_token(int)")))]
+        [(is_typeString (chopped pos)) (Function_Token (+ pos 6) "" (append tokens (list "Type_token(string)")))]
+        [else (Function_Token pos tokens)])
+      tokens))
+
+(define (Function_Token pos tokens)
+  (if (< pos end)
+      (if (is_function (chopped pos))
+          (Enum_Token (+ pos 3) (append tokens (list "Function_token")))
+          (Enum_Token pos tokens))
+      tokens))
+
+(define (Enum_Token pos tokens)
+  (if (< pos end)
+      (if (is_enum (chopped pos))
+          (Case_Token (+ pos 4) (append tokens (list "Enum_token")))
+          (Case_Token pos tokens))
+      tokens))
+
+(define (Case_Token pos tokens)
+  (if (< pos end)
+      (if (is_case (chopped pos))
+          (Switch_Token (+ pos 4) (append tokens (list "Case_token")))
+          (Switch_Token pos tokens))
+      tokens))
+
+(define (Switch_Token pos tokens)
+  (if (< pos end)
+      (if (is_case (chopped pos))
+          (Default_Token (+ pos 6) (append tokens (list "Switch_token")))
+          (Default_Token pos tokens))
+      tokens))
+
+(define (Default_Token pos tokens)
+  (if (< pos end)
+      (if (is_default (chopped pos))
+          (Identifier_Token (+ pos 7) "" (append tokens (list "Deafault_token")))
+          (Identifier_Token pos "" tokens))
+      tokens))
+
+(define (Identifier_Token pos val tokens)
+  (if (< pos end)
+    (let ([i (item pos)])
+      (if (is_letter i)
+          (Identifier_Token (add1 pos) (concat val i) tokens)
+          (LeftParen_Token pos (add_token val tokens an_ident))))
+    tokens))
+
+(define (LeftParen_Token pos tokens)
+  (if (< pos end)
+      (if (is_leftparen (item pos))
+          (LeftParen_Token (add1 pos) (append tokens (list "LeftParen_token")))
+          (RightParen_Token pos tokens))
+    tokens))
+
+(define (RightParen_Token pos tokens)
+  (if (< pos end)
+      (if (is_rightparen (item pos))
+          (RightParen_Token (add1 pos) (append tokens (list "RightParen_token")))
+          (Operator_Token pos "" tokens))
+    tokens))
+
+(define (Operator_Token pos val tokens)
+  (if (< pos end)
+      (let ([o (item pos)])
+        (if (is_operator o)
+            (Operator_Token (add1 pos) (concat val o) tokens)
+            (LeftCurlyBracket_Token pos (add_token val tokens an_operator))))
+      tokens))
+
+(define (LeftCurlyBracket_Token pos tokens)
+  (if (< pos end)
+      (if (is_leftCurlyBracket (item pos))
+          (LeftCurlyBracket_Token (add1 pos) (append tokens (list "LeftCurlyBracket_token")))
+          (RightCurlyBracket_Token pos tokens))
+  tokens))
+
+(define (RightCurlyBracket_Token pos tokens)
+  (if (< pos end)
+      (if (is_rightCurlyBracket (item pos))
+          (RightCurlyBracket_Token (add1 pos) (append tokens (list "RightCurlyBracket_token")))
+          (Blank_Space pos tokens))
+      tokens))
+
+(define (Blank_Space pos tokens)
+  (if (< pos end)
+      (if (is_blank (item pos))
+          (Blank_Space (add1 pos) tokens)
+          (Other pos tokens))
+      tokens))
+
+(define (Other pos tokens)
+  (if (< pos end)
+      (if (is_other (item pos))
+          (error (concat "invalid character: " (item  pos)))
+          (Integer_Token pos "" tokens))
+      tokens))
+
+(define (tokenizer pos) (Integer_Token pos "" (list)))
+
+(tokenizer 0)
