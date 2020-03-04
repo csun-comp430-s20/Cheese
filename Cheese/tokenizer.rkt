@@ -37,6 +37,13 @@
 (define (is_enum e) (list-prefix? (list #\e #\n #\u #\m) e))
 (define (is_case c) (list-prefix? (list #\c #\a #\s #\e) c))
 (define (is_switch s) (list-prefix? (list #\s #\w #\i #\t #\c #\h) s))
+(define (is_default d) (list-prefix? (list #\d #\e #\a #\u #\l #\t) d))
+(define (is_other o) (cond
+                       [(list? (member o (range 10))) #t]
+                       [(list? (member o (range 11 32))) #t]
+                       [(list? (member o (list 33 35 36 37 38 39 44 46 47 58 59 63 64 124 126 127))) #t]
+                       [(list? (member o (range 91 97))) #t]
+                       [else #f]))
 
 (define (an_int digits) (string-append "Integer_token(" digits ")"))
 (define (a_string s) (string-append "String_token(" s ")"))
@@ -169,7 +176,14 @@
 (define (Switch_Token pos tokens)
   (if (< pos end)
       (if (is_case (chopped pos))
-          (Identifier_Token (+ pos 6) "" (append tokens (list "Switch_token")))
+          (Default_Token (+ pos 6) (append tokens (list "Switch_token")))
+          (Default_Token pos tokens))
+      tokens))
+
+(define (Default_Token pos tokens)
+  (if (< pos end)
+      (if (is_default (chopped pos))
+          (Identifier_Token (+ pos 7) "" (append tokens (list "Deafault_token")))
           (Identifier_Token pos "" tokens))
       tokens))
 
@@ -221,9 +235,15 @@
   (if (< pos end)
       (if (is_blank (item pos))
           (Blank_Space (add1 pos) tokens)
-          (Integer_Token pos "" tokens))
+          (Other pos tokens))
       tokens))
 
+(define (Other pos tokens)
+  (if (< pos end)
+      (if (is_other (item pos))
+          (error (concat "invalid character: " (item  pos)))
+          (Integer_Token pos "" tokens))
+      tokens))
 
 (define (tokenizer pos) (Integer_Token pos "" (list)))
 
