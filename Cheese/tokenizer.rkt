@@ -45,11 +45,20 @@
                        [(list? (member o (range 91 97))) #t]
                        [else #f]))
 
-(define (an_int digits) (string-append "Integer_token(" digits ")"))
-(define (a_string s) (string-append "String_token(" s ")"))
-(define (a_bool b) (string-append "Boolean_token(" (list->string b) ")"))
-(define (an_ident i) (string-append "Identifier_token(" i ")"))
-(define (an_operator o) (string-append "Operator_token(" o ")"))
+
+(struct Token (type value))
+
+;(define (an_int digits) (string-append "Integer_token(" digits ")"))
+(define (an_int digits) (Token "Integer" digits))
+;(define (a_string s) (string-append "String_token(" s ")"))
+(define (a_string s) (Token "String" s))
+;(define (a_bool b) (string-append "Boolean_token(" (list->string b) ")"))
+(define (a_bool b) (Token "Boolean" (list->string b)))
+;(define (an_ident i) (string-append "Identifier_token(" i ")"))
+(define (an_ident i) (Token "Identifier" i))
+;(define (an_operator o) (string-append "Operator_token(" o ")"))
+(define (an_operator o) (Token "Operator" o))
+(define a_quotation (Token "Quatation" #\"))
 
 (define (add_token t tokens op) (if (> (string-length t) 0) (append tokens (list (op t))) tokens))
 
@@ -67,7 +76,7 @@
 (define (Quotation_Token pos val tokens)
   (if (< pos end)
       (if (is_quotation (item pos))
-          (String_Token (add1 pos) "" (append tokens (list "Quotation_token")))
+          (String_Token (add1 pos) "" (append tokens (list a_quotation)))
           (Boolean_Token pos tokens))
       tokens))
 
@@ -76,7 +85,7 @@
     (let ([character (item pos)])
       (if (not (is_quotation character))
         (String_Token (add1 pos) (concat val character) tokens)
-        (Boolean_Token (add1 pos) (append tokens (list (a_string val)) (list "Quotation_token")))))
+        (Boolean_Token (add1 pos) (append tokens (list (a_string val)) (list a_quotation)))))
     tokens))
 
 (define (Boolean_Token pos tokens)
@@ -91,99 +100,99 @@
 (define (While_Token pos tokens)
   (if (< pos end)
         (if (is_while (chopped pos))
-            (If_Token (+ pos 5) (append tokens (list "While_token")))
+            (If_Token (+ pos 5) (append tokens (list (Token "While" "while"))))
             (If_Token pos tokens))
         tokens))
 
 (define (If_Token pos tokens)
   (if (< pos end)
       (if (is_if (chopped pos))
-          (Else_Token (+ pos 2) (append tokens (list "If_token")))
+          (Else_Token (+ pos 2) (append tokens (list (Token "If" "if"))))
           (Else_Token pos tokens))
       tokens))
 
 (define (Else_Token pos tokens)
   (if (< pos end)
       (if (is_else (chopped pos))
-          (Or_Token (+ pos 4) (append tokens (list "Else_token")))
+          (Or_Token (+ pos 4) (append tokens (list (Token "Else" "else"))))
           (Or_Token pos tokens))
       tokens))
 
 (define (Or_Token pos tokens)
   (if (< pos end)
       (if (is_or (chopped pos))
-          (Fail_Token (+ pos 2) (append tokens (list "Or_token")))
+          (Fail_Token (+ pos 2) (append tokens (list (Token "Or" "or"))))
           (Fail_Token pos tokens))
       tokens))
 
 (define (Fail_Token pos tokens)
   (if (< pos end)
       (if (is_fail (chopped pos))
-          (Print_Token (+ pos 4) (append tokens (list "Fail_token")))
+          (Print_Token (+ pos 4) (append tokens (list (Token "Fail" "fail"))))
           (Print_Token pos tokens))
       tokens))
 
 (define (Print_Token pos tokens)
   (if (< pos end)
       (if (is_print (chopped pos))
-          (Not_Token (+ pos 5) (append tokens (list "Print_token")))
+          (Not_Token (+ pos 5) (append tokens (list (Token "Print" "print"))))
           (Not_Token pos tokens))
       tokens))
 
 (define (Not_Token pos tokens)
   (if (< pos end)
       (if (is_not (chopped pos))
-          (And_Token (+ pos 3) (append tokens (list "Not_token")))
+          (And_Token (+ pos 3) (append tokens (list (Token "Not" "not"))))
           (And_Token pos tokens))
   tokens))
 
 (define (And_Token pos tokens)
   (if (< pos end)
       (if (is_and (chopped pos))
-          (Type_Token (+ pos 3) (append tokens (list "And_token")))
+          (Type_Token (+ pos 3) (append tokens (list (Token "And" "and"))))
           (Type_Token pos tokens))
   tokens))
 
 (define (Type_Token pos tokens)
   (if (< pos end)
       (cond
-        [(is_typeInt (chopped pos)) (Function_Token (+ pos 3) "" (append tokens (list "Type_token(int)")))]
-        [(is_typeString (chopped pos)) (Function_Token (+ pos 6) "" (append tokens (list "Type_token(string)")))]
+        [(is_typeInt (chopped pos)) (Function_Token (+ pos 3) "" (append tokens (list (Token "Type" "int"))))]
+        [(is_typeString (chopped pos)) (Function_Token (+ pos 6) "" (append tokens (list (Token "Type" "string"))))]
         [else (Function_Token pos tokens)])
       tokens))
 
 (define (Function_Token pos tokens)
   (if (< pos end)
       (if (is_function (chopped pos))
-          (Enum_Token (+ pos 3) (append tokens (list "Function_token")))
+          (Enum_Token (+ pos 3) (append tokens (list (Token "Function" "def"))))
           (Enum_Token pos tokens))
       tokens))
 
 (define (Enum_Token pos tokens)
   (if (< pos end)
       (if (is_enum (chopped pos))
-          (Case_Token (+ pos 4) (append tokens (list "Enum_token")))
+          (Case_Token (+ pos 4) (append tokens (list (Token "Enum" "enum"))))
           (Case_Token pos tokens))
       tokens))
 
 (define (Case_Token pos tokens)
   (if (< pos end)
       (if (is_case (chopped pos))
-          (Switch_Token (+ pos 4) (append tokens (list "Case_token")))
+          (Switch_Token (+ pos 4) (append tokens (list (Token "Case" "case"))))
           (Switch_Token pos tokens))
       tokens))
 
 (define (Switch_Token pos tokens)
   (if (< pos end)
       (if (is_case (chopped pos))
-          (Default_Token (+ pos 6) (append tokens (list "Switch_token")))
+          (Default_Token (+ pos 6) (append tokens (list (Token "Switch" "switch"))))
           (Default_Token pos tokens))
       tokens))
 
 (define (Default_Token pos tokens)
   (if (< pos end)
       (if (is_default (chopped pos))
-          (Identifier_Token (+ pos 7) "" (append tokens (list "Deafault_token")))
+          (Identifier_Token (+ pos 7) "" (append tokens (list (Token "Default" "default"))))
           (Identifier_Token pos "" tokens))
       tokens))
 
@@ -198,14 +207,14 @@
 (define (LeftParen_Token pos tokens)
   (if (< pos end)
       (if (is_leftparen (item pos))
-          (LeftParen_Token (add1 pos) (append tokens (list "LeftParen_token")))
+          (LeftParen_Token (add1 pos) (append tokens (list (Token "LeftParen" #\())))
           (RightParen_Token pos tokens))
     tokens))
 
 (define (RightParen_Token pos tokens)
   (if (< pos end)
       (if (is_rightparen (item pos))
-          (RightParen_Token (add1 pos) (append tokens (list "RightParen_token")))
+          (RightParen_Token (add1 pos) (append tokens (list (Token "RightParen" #\)))))
           (Operator_Token pos "" tokens))
     tokens))
 
@@ -220,14 +229,14 @@
 (define (LeftCurlyBracket_Token pos tokens)
   (if (< pos end)
       (if (is_leftCurlyBracket (item pos))
-          (LeftCurlyBracket_Token (add1 pos) (append tokens (list "LeftCurlyBracket_token")))
+          (LeftCurlyBracket_Token (add1 pos) (append tokens (list (Token "LeftCurlyBracket" #\{))))
           (RightCurlyBracket_Token pos tokens))
   tokens))
 
 (define (RightCurlyBracket_Token pos tokens)
   (if (< pos end)
       (if (is_rightCurlyBracket (item pos))
-          (RightCurlyBracket_Token (add1 pos) (append tokens (list "RightCurlyBracket_token")))
+          (RightCurlyBracket_Token (add1 pos) (append tokens (list (Token "RightCurlyBracket" #\}))))
           (Blank_Space pos tokens))
       tokens))
 
@@ -246,5 +255,21 @@
       tokens))
 
 (define (tokenizer pos) (Integer_Token pos "" (list)))
+(define Tokens (tokenizer 0))
+(for ([i Tokens])
+  (display (Token-type i))
+  (displayln (Token-value i)))
+  
+(define amount_of_tokens (length Tokens))
+(define (chop_tokens pos) (take-right Tokens (- amount_of_tokens pos)))
 
-(tokenizer 0)
+(struct If_expression (startpos gaurd ifTrue ifFalse))
+
+
+
+          
+
+
+
+
+
