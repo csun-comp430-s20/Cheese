@@ -24,6 +24,10 @@
 (define (is_function_expression f)
   (list-prefix (list leftparen_Token function_Token type_Token identifier_Token leftparen_Token . rightparen_Token leftcurly_Token . rightcurly_Token _ rightparen_Token) f))
 
+
+;a call to a function is a statement so this should be used when attempting to parse a statement
+(define (is_call_to_function c) (list-prefix (list leftparen_Token identifier_Token . rightparen_Token) c))
+
 (define (Parse_function pos)
   (if (< pos amount_of_tokens)
       (let [f (chopped_tokens pos)]
