@@ -28,7 +28,7 @@
   (if (< pos amount_of_tokens)
       (let [f (chopped_tokens pos)]
         (if (is_function_expression f)
-            (Function_Expression (list-ref f (+ pos 2)) (list-ref f (+ pos 3)) (Parse_Expression (+ pos 5)) (Parse_Expression (+ pos (add1 (index-of f leftcurly_Token)))))
+            (Function (list-ref f (+ pos 2)) (list-ref f (+ pos 3)) (Parse_Expression (+ pos 5)) (Parse_Expression (+ pos (add1 (index-of f leftcurly_Token)))))
             (Parse_Expression pos)))
       pos))
 
