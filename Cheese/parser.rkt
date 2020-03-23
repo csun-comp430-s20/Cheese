@@ -1,5 +1,9 @@
 #lang racket
 
+(define amount_of_tokens (length Tokens))
+(define (chop_tokens pos) (take-right Tokens (- amount_of_tokens pos)))
+
+
 (struct If_expression (gaurd ifTrue ifFalse))
 (struct Additive_expression (operand primary1 primary2))
 (struct Multiplicative_expression (operand primary1 primary2))
@@ -8,6 +12,27 @@
 (stuct Enum_statement (identifier cases))
 (struct Or_statement (exp1 exp2))
 (struct Switch_statement (exp cases default))
-(struct Call_statement (identifier expressions))
+(struct Call_statement (identifier arguments))
 (struct Assignment_statement (identifier exp))
-(struct Primary_Expression (value))
+(struct Integer_Expression (value))
+(struct String_Expression (value))
+(struct Boolean_Expression (value))
+(struct Variable_Expression (value))
+(struct Function (type identifier parameters))
+
+(struct ParseResult (result nextpos))
+
+(define (is_function_expression f)
+  (match f
+    [(list leftparen_Token function_Token type_Token identifier_Token leftparen_Token . rightparen_Token leftcurly_Token . rightcurly_Token _) #t]
+    [(list leftparen_Token function_Token identifier_Token leftparen_Token . rightparen_Token leftcurly_Token . rightcurly_Token) #t]
+    [else #f]))
+
+(define (Parse_function pos)
+  (if (< pos amount_of_tokens)
+      (let [f (chopped_tokens pos)]
+        (if (is_function_expression f)
+            (ParseResult 
+
+      
+  
