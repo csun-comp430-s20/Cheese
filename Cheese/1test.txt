@@ -1,0 +1,34 @@
+(= x "aaaaaabbb")
+(44 - 3434)
+ab(2 + 3)
+(= c (3/4) if True else 0)    (or A B) ((print "hello") if A else fail)
+a(g b)
+{
+   (+ g 1)
+   (+ b g)
+   c(f)
+   {
+      ((print "yay") if not f and b else (print "damn"))
+   }
+}
+*
+
+
+435
+True
+fdafd
+while
+
+"while"
+
+if( fail )( if 
+else else 
+
+ifif 
+
+whileifelseTrue34
+
+
+falseFalse12trueTrue
+
+"fgd'f"

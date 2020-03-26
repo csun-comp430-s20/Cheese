@@ -318,7 +318,7 @@
             [p (parse_parameter_decleration (ParseResult-nextpos i))]
             [b (parse_function_body_decleration (ParseResult-nextpos p))]
             [r (Parse_function (ParseResult-nextpos b))])
-            (if (rightparen_Token? (list-ref Tokens (- (ParseResult-nextpos r) 1)))
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos r)))
                 (ParseResult (Function_Expression t i p b r) (add1 (ParseResult-nextpos r)))
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos r)))))
             ;(Parse_Expression pos))
@@ -339,7 +339,7 @@
 (define (check_type_of_param tok pos)
   (if (type_Token? tok)
       (ParseResult (type_Token-value tok) (add1 pos))
-      (error "invalid type given, expected a type int or string but read: " (list-ref Tokens pos))))
+      (error "invalid type given, expected a type int or string or boolean but read: " (list-ref Tokens pos))))
 
 (define (check_name_of_param tok pos)
   (if (identifier_Token? tok)

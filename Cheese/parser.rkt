@@ -31,7 +31,7 @@
             [p (parse_parameter_decleration (ParseResult-nextpos i))]
             [b (parse_function_body_decleration (ParseResult-nextpos p))]
             [r (Parse_function (ParseResult-nextpos b))])
-            (if (rightparen_Token? (list-ref Tokens (- (ParseResult-nextpos r) 1)))
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos r)))
                 (ParseResult (Function_Expression t i p b r) (add1 (ParseResult-nextpos r)))
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos r)))))
             ;(Parse_Expression pos))
