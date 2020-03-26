@@ -12,29 +12,46 @@
 (struct Or_statement (exp1 exp2))
 (struct Switch_statement (exp cases default))
 (struct Call_statement (identifier arguments))
-(struct Assignment_statement (identifier exp))
+(struct Assignment_statement (type identifier exp))
 (struct Integer_Expression (value))
 (struct String_Expression (value))
 (struct Boolean_Expression (value))
 (struct Variable_Expression (value))
-(struct Function (type identifier parameters body))
+(struct Function_Expression (type identifier parameters body returning))
 
 (struct ParseResult (result nextpos))
 
 (define (is_function_expression f)
-  (list-prefix (list leftparen_Token function_Token type_Token identifier_Token leftparen_Token . rightparen_Token leftcurly_Token . rightcurly_Token _ rightparen_Token) f))
-
-
-;a call to a function is a statement so this should be used when attempting to parse a statement
-(define (is_call_to_function c) (list-prefix (list leftparen_Token identifier_Token . rightparen_Token) c))
+  (list-prefix (list leftparen_Token function_Token) f)
 
 (define (Parse_function pos)
   (if (< pos amount_of_tokens)
-      (let [f (chopped_tokens pos)]
-        (if (is_function_expression f)
-            (Function (list-ref f (+ pos 2)) (list-ref f (+ pos 3)) (Parse_Expression (+ pos 5)) (Parse_Expression (+ pos (add1 (index-of f leftcurly_Token)))))
+      (if (is_function_expression (chopped_tokens pos))
+          (let ([t (ParseResult (list-ref Tokens (+ pos 2)) (+ pos 3))]
+            [i (ParseResult (list-ref Tokens (ParseResult-nextpos t)) (add1 (ParseResult-nextpos t)))]
+            [p (parse_parameter_decleration (ParseResult-nextpos i))]
+            [b (parse_function_body_decleration (ParseResult-nextpos p))]
+            [r (parse_return_decleration (ParseResult-nextpos b))])
+            (ParseResult (Function_Expression i p b r) (ParseResult-nextpos r)))
             (Parse_Expression pos)))
       pos))
 
+
+(define (parse_parameter_decleration pos)
+  (if (equal? (list-ref Tokens pos) leftparen_Token)
+      (collect_params (add1 pos) (list))
+      (error (concat "invalid syntax, expected ) but read : " (list-ref Tokens pos)))))
+
+(define (collect_params pos params)
+  (if (equal? (list-ref Tokens pos) rightparen_Token) params
+      (let ([t (check_type_of_param (list-ref Tokens (add1 pos)))]
+            [i (check_name_of_param (list-ref Tokens (ParseResult-nextpos t)))])
+        (collect_params (ParseResult-nextpos i)(append params (list (list (list t i))))))))
+
+
+(define (check_type_of_param tok)
+  (if (type_Token? tok)
+      (ParseResult (type_Token-value tok) (add1 pos))
+      (error (concat "invalid type given, expected a type int or string but read: " (list-ref Tokens pos)))))
       
   
