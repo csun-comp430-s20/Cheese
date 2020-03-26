@@ -11,7 +11,7 @@
 (struct Enum_statement (identifier cases))
 (struct Or_statement (exp1 exp2))
 (struct Switch_statement (exp cases default))
-(struct Call_statement (identifier arguments))
+(struct Call_statement (type identifier arguments))
 (struct Assignment_statement (identifier exp))
 (struct Integer_Expression (value))
 (struct String_Expression (value))
