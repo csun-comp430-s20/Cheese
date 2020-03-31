@@ -1,0 +1,24 @@
+#lang racket
+
+;parser for primary (variables, integers, and strings) and logic operators (<, >, <=, >=, ==)
+;build an ast
+
+;structures
+(struct Boolean_expression (operand primary1 primary2))
+(struct Primary_expression (value))
+
+;definitions
+(define Total_tokens (length tokens))
+(define (chopped pos) (take-right characters (- end pos)))
+
+;syntax tree
+(define syntaxTree (parentNode leftNode rightNode)
+  (
+
+;primary can be an integer, string (int p1) (string p1)
+
+;less than & greater than (< p1 p2) (> p1 p2)
+
+;less than equal and & greater than equal (<= p1 p2) (>= p1 p2)
+
+;equivalence (== p1 p2)

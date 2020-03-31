@@ -264,7 +264,7 @@
 (struct Boolean_expression (operand primary1 primary2))
 (struct Primary_Expression (value))
 (struct While_statement (gaurd body))
-(stuct Enum_statement (identifier cases))
+(struct Enum_statement (identifier cases))
 (struct Or_statement (exp1 exp2))
 (struct Switch_statement (exp cases default))
 (struct Call_statement (identifier expressions))
