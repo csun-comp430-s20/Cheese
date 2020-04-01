@@ -1,4 +1,5 @@
 #lang racket
+#lang racket
 
 (define in (open-input-file "test.txt"))
 
@@ -438,6 +439,106 @@
 (ParseResult-result (Function_Expression-returned branch))
 
 
+; check if starts with leftParen and While Token "(While"
+(define (isWhile pos)
+  (and (leftparen_Token? (list-ref Tokens pos))
+       (while_Token? (list-ref Tokens (add1 pos))))
 
+; collect everything until the end of condition ")"
+(define (collect_condition pos condition)
+  (if (rightparen_Token? (list-ref Tokens pos))
+      (ParseResult condition (add1 pos))
+      (let ([cond_stmt (Parse_function pos)])
+        (collect_condition (ParseResult-nextpos cond_stmt) (append condition (list cond_stmt))))   
+  ))
 
+; parse the gaurd a.k.a. the condition of while loop.
+; Check for "(" then collect the condition. 
+(define (parse_gaurd pos)
+  (if (leftparen_Token? (list-ref Tokens pos))
+      (collect_condition (add1 pos) (list))
+      (error "invalid syntax, expected ( but read : " (list-ref Tokens pos))
+      )
+  )
 
+; parse the body of while loop. Check for "(" then collect body
+ (define (parse_body pos)
+  (if (leftparen_Token? (list-ref Tokens pos))
+      (collect_while_body (add1 pos) (list))
+      (error "invalid syntax, expected ( but read : " (list-ref Tokens pos))
+      )
+  )
+
+; collect everything in body until end of body ")"
+(define (collect_while_body pos body)
+  (if (rightparen_Token? (list-ref Tokens pos))
+      (ParseResult body (add1 pos))
+      (let ([while_body (Parse_function pos)])
+        (collect_while_body (ParseResult-nextpos while_body) (append body (list while_body)))
+        )))
+ 
+; Parse the entire While loop
+(define (Parse_While pos)
+  (if (< pos amountOfTokens)
+      (if (isWhile pos)
+          ; g is gaurd (or the condition for keeping the while loop running)
+          (let* ([g (parse_gaurd (+ pos 2))]
+                 ;b is body
+                 [b (parse_body (ParseResult-nextpos g))])
+            ; check if While Loop has ended
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos b)))
+                ;if so retrun a ParseResult containing the while expression and the next position (pos + 1)
+                (ParseResult (While_Statement g b) (add1 (ParseResult-nextpos b)))
+                ;else throw an error due to invalid syntax
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos b)
+                 ))))
+          ; temporary ; not a While Exp
+          (pos)
+          )
+      ; temporary ; ran out of tokens
+      (pos)
+  ))
+
+; Check if stmt starts with leftparen and Or token: "(or"
+(define (isOr pos)
+  (and (leftparen_Token? (list-ref Tokens pos))
+       (or_Token? (list-ref Tokens (add1 pos)))))
+
+; Parse an or expression, check for "(" then collect the expression
+(define (parse_exp pos)
+  (if (leftparen_Token? (list-ref Tokens pos))
+      (collect_or_expr (add1 pos) (list))
+      (error "invalid syntax, expected ( but read : " (list-ref Tokens pos))
+      )
+  )
+
+; Collect everything in the expression until a ")" is seen
+(define (collect_or_expr pos expression)
+  (if (rightparen_Token? (list-ref Tokens pos))
+      (ParseResult expression (add1 pos))
+      (let ([or_expr (Parse_function pos)])
+        (collect_or_expr (ParseResult-nextpos or_expr) (append expression (list or_expr)))
+        ))
+  )
+
+; Parse the Or Stmt
+(define (Parse_Or pos)
+  (if (< pos amountOfTokens)
+      (if (isOr pos)
+          ; e1 is expression 1
+          (let* ([e1 (parse_exp (+ pos 2))]
+                 [e2 (parse_exp (ParseResult-nextpos e1))])
+            ; if end of Or Stmt
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+                ;if so retrun a ParseResult containing the while expression and the next position (pos + 1)
+                (ParseResult (Or_Statement e1 e2) (add1 (ParseResult-nextpos e2)))
+                ;else throw an error due to invalid syntax
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)
+                 ))))
+          ; temporary ; not an Or Exp
+          (pos)
+          )
+      ; temporary ; ran out of tokens
+      (pos)
+      )
+  )
