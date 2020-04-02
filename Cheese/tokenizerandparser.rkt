@@ -316,17 +316,14 @@
 (define (Parse_Expression pos)
   (if (< pos amount_of_tokens)
       (if (an_if pos)
-          (let* (
-                 [gaurd (parse_guard (+ pos 2))]
+          (let* ([gaurd (parse_guard (+ pos 2))]
                  [ifTrue (Parse_Expression (ParseResult-nextpos guard))]
-                 [ifFalse (collect_ifFalse_body (ParseResult-nextpos ifTrue))]
-                 )
+                 [ifFalse (collect_ifFalse_body (ParseResult-nextpos ifTrue))])
             (ParseResult (If_Expression guard ifTrue ifFalse) (ParseResult-nextpos ifFalse)))
           (Parse_Additive_Expression pos))
       (ParseResult null pos)))
 
 (define (an_if pos) (and (leftparen_Token? (list-ref Tokens pos)) (if_Token? (list-ref Tokens (add1 pos)))))
-
 
 (define (collect_ifFalse_body pos)
   (if (< pos amount_of_tokens)
@@ -384,7 +381,6 @@
         [else (Parse_Boolean_Operation_Expression pos)])
       (ParseResult null pos)))
 
-
 (define (a_multiplication_operator pos)
   (if (< pos amount_of_tokens)
       (let ([op (list-ref Tokens pos)])
@@ -415,17 +411,26 @@
         (ParseResult (Multiplicative_Expression "/" e1 e2) (ParseResult-nextpos e2)))
       (ParseResult null pos)))
 
-
 (define (Parse_Boolean_Operation_Expression pos)
   (if (< pos amount_of_tokens)
       (cond
-        [(and (leftparen_Token? (list-ref Tokens pos)) (a_equality_operator (add1 pos)) (assemble_eqaulity_expression (+ pos 3))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (an_equality_operator (add1 pos)) (assemble_eqaulity_expression (+ pos 3))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthanequal_operator (add1 pos)) (assemble_lessthanequal_expression (+ pos 3))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_greaterthanequal_operator (add1 pos))) (assemble_greaterthanequal_expression (+ pos 3))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthan_operator (add1 pos))) (assemble_lessthan_expression (+ pos 2))]
-        [(and (leftparen_Token? (list-refTokens pos)) (a_greaterthan_operator (add1 pos))) (assemble_greaterthan_expression (+ pos 2))]
-        [else (Parse_Boolean_Operation_Expression pos)])
+        [(and (leftparen_Token? (list-ref Tokens pos)) (a_greaterthan_operator (add1 pos))) (assemble_greaterthan_expression (+ pos 2))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (a_logic_and_operator (add1 pos))) (assemble_logic_and_expression (+ pos 2))]
+        [else (Parse_Primary_Expression pos)])
       (ParseResult null pos)))
+
+(define (an_equality_operator pos)
+  (if (< pos amount_of_tokens)
+      (let ([op1 (list-ref Tokens pos)]
+            [op2 (list-ref Tokens (add1 pos))])
+        (if (and (operator_Token? op1) (operator_Token? op2)) 
+            (and (equal? "=" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
+            #f))
+      #f))
 
 (define (a_lessthanequal_operator pos)
   (if (< pos amount_of_tokens)
@@ -444,7 +449,6 @@
             (and (equal? ">" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
             #f))
       #f))
-
 
 (define (a_lessthan_operator pos)
   (if (< pos amount_of_tokens)
@@ -469,6 +473,37 @@
         (ParseResult (Boolean_Operation_Expression "<=" e1 e2) (ParseResult-nextpos e2)))
       (ParseResult null pos)))
 
+(define (assemble_greaterthanequal_expression pos)
+  (if (< pos amount_of_tokens)
+      (let* ([e1 (Parse_Expression pos)]
+             [e2 (Parse_Expression (ParseResult-nextpos e1))])
+        (ParseResult (Boolean_Operation_Expression ">=" e1 e2) (ParseResult-nextpos e2)))
+      (ParseResult null pos)))
+
+(define (assemble_lessthan_expression pos)
+  (if (< pos amount_of_tokens)
+      (let* ([e1 (Parse_Expression pos)]
+             [e2 (Parse_Expression (ParseResult-nextpos e1))])
+        (ParseResult (Boolean_Operation_Expression "<" e1 e2) (ParseResult-nextpos e2)))
+      (ParseResult null pos)))
+
+(define (assemble_greaterthan_expression pos)
+  (if (< pos amount_of_tokens)
+      (let* ([e1 (Parse_Expression pos)]
+             [e2 (Parse_Expression (ParseResult-nextpos e1))])
+        (ParseResult (Boolean_Operation_Expression ">" e1 e2) (ParseResult-nextpos e2)))
+      (ParseResult null pos)))
+
+(define (Parse_Primary pos)
+  (if (< pos amount_of_tokens)
+      (let ([tok (list-ref Tokens pos)])
+        (cond
+          [(integer_Token? tok) (ParseResult (Integer_Expression (integer_Token-value tok)) (add1 pos))]
+          [(string_Token? tok) (ParseResult (String_Expression (string_Token-value tok)) (add1 pos))]
+          [(boolean_Token? tok) (ParseResult (Boolean_Expression (boolean_Token-value tok)) (add1 pos))]
+          [(variable_Token? tok) (ParseResult (Variable_Expression (variable_Token-value tok)) (add1 pos))]
+          [
+
 
 ;helper function, checks if the token at position pos and position pos + 1 are tokens that prefix a function decleration
 (define (is_function_expression pos) (and (leftparen_Token? (list-ref Tokens pos)) (function_Token? (list-ref Tokens (add1 pos)))))
@@ -489,16 +524,13 @@
                  ;b is the body
                  [b (parse_function_body_decleration (ParseResult-nextpos p))]
                  ;r is the expression being returned
-                 [r (Parse_function (ParseResult-nextpos b))]
-                 )
+                 [r (Parse_function (ParseResult-nextpos b))])
             ;check to see if we've reached the end of the function, i.e. is the token at position pos a rightparen_Token
             (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos r)))
                 ;if so retrun a ParseResult containing the Function expression and the next position (pos + 1)
                 (ParseResult(Function_Expression t i p b r) (add1 (ParseResult-nextpos r)))
                 ;else throw an error due to invalid syntax
-                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos r)))
-                )
-            )
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos r)))))
             ;(Parse_Expression pos)) to be implemented later when Parse_Expression is created
           ;temporary... verifies there are still more tokens to be parsed
           (if (< (add1 pos) amount_of_tokens) (ParseResult null (add1 pos)) (ParseResult null pos)))
