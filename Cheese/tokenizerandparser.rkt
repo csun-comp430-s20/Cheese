@@ -19,7 +19,7 @@
 (define (is_quotation q) (= q 34))
 (define (is_leftparen p) (= p 40))
 (define (is_rightparen p) (= p 41))
-(define (is_blank b) (or (= b 10) (= b 32)))
+(define (is_blank b) (or (or (= b 10) (= b 13)) (= b 32)))
 (define (is_operator o) (list? (member o (list 42 43 45 47 60 61 62))))
 (define (is_while w) (list-prefix? (list  #\w #\h #\i #\l #\e #\space) w))
 (define (is_if i) (list-prefix? (list #\i #\f #\space) i))
@@ -867,13 +867,13 @@
 
 
 
-(define toplevelparse
-  (let ([result (Parse_function 0)])
-    (if (< (ParseResult-nextpos result) amount_of_tokens)
-        (error "There are leftover tokens that have not been parsed")
-        result)))
+(define (toplevelparse pos results)
+  (if (< pos amount_of_tokens)
+      (let ([result (Parse_function pos)])
+        (toplevelparse (ParseResult-nextpos result) (append results (list result))))
+      results))
 
-toplevelparse
+(toplevelparse 0 (list))
 
 
 
