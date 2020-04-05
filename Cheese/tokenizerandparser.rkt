@@ -317,7 +317,9 @@
           (let* ([gaurd (Parse_Expression (+ pos 2))]
                  [ifTrue (Parse_Expression (ParseResult-nextpos gaurd))]
                  [ifFalse (collect_ifFalse_body (ParseResult-nextpos ifTrue))])
-            (ParseResult (If_Expression gaurd ifTrue ifFalse) (ParseResult-nextpos ifFalse)))
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos ifFalse)))
+                (ParseResult (If_Expression gaurd ifTrue ifFalse) (add1 (ParseResult-nextpos ifFalse)))
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos ifFalse)))))
           (Parse_Additive_Expression pos))
       (ParseResult null pos)))
 
@@ -563,7 +565,7 @@
                  ;b is the body
                  [b (parse_function_body_decleration (ParseResult-nextpos p))]
                  ;r is the expression being returned
-                 [r (Parse_function (ParseResult-nextpos b))])
+                 [r (Parse_Expression (ParseResult-nextpos b))])
             ;check to see if we've reached the end of the function, i.e. is the token at position pos a rightparen_Token
             (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos r)))
                 ;if so retrun a ParseResult containing the Function expression and the next position (pos + 1)
@@ -871,7 +873,7 @@
         (error "There are leftover tokens that have not been parsed")
         result)))
 
-(toplevelparse)
+toplevelparse
 
 
 

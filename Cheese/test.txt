@@ -1,1 +1,1 @@
-(def int x (String f int x) {fdsa}a)
+(def int foo (String f int x) {(if True (+ x x) else f)} x)
