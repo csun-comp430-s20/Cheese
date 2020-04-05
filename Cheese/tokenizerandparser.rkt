@@ -299,7 +299,7 @@
 (struct While_Statement (gaurd body))
 (struct Enum_Statement (identifier cases))
 (struct Or_Statement (exp1 exp2))
-(struct Switch_Statement (exp cases default))
+(struct Switch_Statement (identifier cases default))
 (struct Call_Expression (identifier arguments))
 (struct Assignment_Statement (type identifier exp))
 (struct Integer_Expression (value))
@@ -501,7 +501,7 @@
           [(integer_Token? tok) (ParseResult (Integer_Expression (integer_Token-value tok)) (add1 pos))]
           [(string_Token? tok) (ParseResult (String_Expression (string_Token-value tok)) (add1 pos))]
           [(boolean_Token? tok) (ParseResult (Boolean_Expression (boolean_Token-value tok)) (add1 pos))]
-          [(variable_Token? tok) (ParseResult (Variable_Expression (variable_Token-value tok)) (add1 pos))]
+          [(identifier_Token? tok) (ParseResult (Variable_Expression (variable_Token-value tok)) (add1 pos))]
           [
 
 
@@ -642,7 +642,7 @@
 (define (collect_condition pos condition)
   (if (rightparen_Token? (list-ref Tokens pos))
       (ParseResult condition (add1 pos))
-      (let ([cond_stmt (Parse_function pos)])
+      (let ([cond_stmt (Parse_Expression pos])
         (collect_condition (ParseResult-nextpos cond_stmt) (append condition (list cond_stmt))))   
   ))
 
@@ -657,7 +657,7 @@
 
 ; parse the body of while loop. Check for "(" then collect body
  (define (parse_body pos)
-  (if (leftparen_Token? (list-ref Tokens pos))
+  (if (leftcurly_Token? (list-ref Tokens pos))
       (collect_while_body (add1 pos) (list))
       (error "invalid syntax, expected ( but read : " (list-ref Tokens pos))
       )
@@ -665,14 +665,14 @@
 
 ; collect everything in body until end of body ")"
 (define (collect_while_body pos body)
-  (if (rightparen_Token? (list-ref Tokens pos))
+  (if (rightcurly_Token? (list-ref Tokens pos))
       (ParseResult body (add1 pos))
-      (let ([while_body (Parse_function pos)])
+      (let ([while_body (Parse_Statment pos)])
         (collect_while_body (ParseResult-nextpos while_body) (append body (list while_body)))
         )))
  
 ; Parse the entire While loop
-(define (Parse_While pos)
+(define (Parse_Statement pos)
   (if (< pos amountOfTokens)
       (if (isWhile pos)
           ; g is gaurd (or the condition for keeping the while loop running)
@@ -686,12 +686,91 @@
                 ;else throw an error due to invalid syntax
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos b)
                  ))))
-          ; temporary ; not a While Exp
-          (pos)
+          ; if not a While stmt then try to parse an enum stmt
+          (Parse_Enumerate_Statement pos)
           )
       ; temporary ; ran out of tokens
-      (pos)
+      (ParseResult null pos)
   ))
+
+(define (Parse_Enumerate_Statement pos)
+  (if (< pos amount_of_tokens)
+      (if (an_enum_stmt pos)
+          (let* ([identifier (collect_enum_name (+ pos 2))]
+                 [cases (collect_enum_cases (ParseResult-nextpos identifier))])
+            (ParseResult (Enum_Statement identifier cases) (ParseResult-nextpos cases)))
+          (Parse_Switch_Statement pos))
+      (ParseResult null pos)))
+
+(define (an_enum_stmt pos)
+  (if (< (+ pos 2) amount_of_tokens)
+      (and (leftparen_Token? (list-ref Tokens pos)) (enum_Token? (list-ref Tokens (add1 pos))))
+      (error "ran out of tokens while parsing")))
+
+(define (collect_enum_name pos)
+  (if (< pos amount_of_tokens)
+      (if (identifier_Token? (list-ref Tokens pos))
+          (ParseResult (Variable_Expression (identifier_Token-value (list-ref Tokens pos))) (add1 pos))
+          (error "invalid syntax, expected a variable but read: " (list-ref Tokens pos)))
+      (error "ran out of tokens while parsing")))
+
+(define (collect_enum_cases pos)
+  (if (< pos amount_of_tokens)
+      (if (leftparen_Token? (list-ref Tokens pos))
+          (retrieve_enum_cases (add1 pos) (list))
+          (error "invalid syntax, expected: ( but read: " (list-ref Tokens pos)))
+      (error "ran out of tokens while parsing")))
+
+(define (retrieve_enum_cases pos cases)
+  (if (< pos amount_of_tokens)
+      (if (rightparen_Token? (list-ref Tokens pos))
+          (ParseResult cases (add1 pos))
+          (let ([a_case (get_case pos)])
+            (retrieve_enum_cases (ParseResult-nextpos a_case) (append cases (list (list a_case))))))
+      (error "ran out of tokens while parsing")))
+
+(define (get_case pos)
+  (if (< (add1 pos) amount_of_tokens)
+      (if (and (case_Token? (list-ref Tokens pos)) (identifier_Token? (list-ref Tokens (add1 pos))))
+          (ParseResult (Variable_Expression (identifier_Token-value (list-ref Tokens (add1 pos)))) (+ pos 2))
+          (error "invalid syntax, expected: case but read: " (list-ref Tokens pos)))
+      (error "ran out of tokens while parsing")))
+
+(define (Parse_Switch_Statement pos)
+  (if (< pos amount_of_tokens)
+      (if (a_switch_stmt pos)
+          (let* ([identifier (ParseExpression (+ pos 2))]
+                 [cases (collect_switch_cases (ParseResult-nextpos identifier))]
+                 [default (collect_default_case (ParseResult-nextpos cases))])
+            (ParseResult (Switch_Statement identifier cases default) (ParseResult-nexpos default)))
+          (Parse_Or pos))
+      (ParseResult null pos)))
+
+(define (a_switch_statment pos)
+  (if (< (add1 pos) amount_of_tokens)
+      (and (leftparen_Token? (list-ref pos)) (switch_Token? (list-ref Tokens pos)))
+      (error "ran out of tokens while parsing")))
+
+(define (collect_switch_cases pos)
+  (if (< pos amount_of_tokens)
+      (retrieve_switch_cases pos (list))
+      (error "ran out of tokens while parsing")))
+
+(define (retrieve_switch_cases pos cases)
+  (if (< (add1 pos) amount_of_tokens)
+      (if (and (leftparen_Token? (list-ref Tokens pos)) (case_Token? (list-ref Tokens pos)))
+          (let* ([identifier (collect_case_identifier (+ pos 2))]
+                 [exp (Parse_Expression (ParseResult-nextpos identifier))])
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
+                (retrieve_switch_cases (add1 (ParseResult-nextpos exp)) (append cases (list (list identifier exp))))
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos exp)))))
+          (ParseResult cases pos))
+      (error "ran out of tokens while parsing")))
+          
+          
+  
+
+
 
 ; Check if stmt starts with leftparen and Or token: "(or"
 (define (isOr pos)
