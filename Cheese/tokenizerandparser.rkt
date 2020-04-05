@@ -100,7 +100,7 @@
 (define (Quotation_Token pos val tokens)
   (if (< pos end)
       (if (is_quotation (item pos))
-          (String_Token (add1 pos) "" (append tokens (list (quotation_Token #t))))
+          (String_Token (add1 pos) "" tokens)
           (Boolean_Token pos tokens))
       tokens))
 
@@ -109,7 +109,7 @@
     (let ([character (item pos)])
       (if (not (is_quotation character))
         (String_Token (add1 pos) (concat val character) tokens)
-        (Boolean_Token (add1 pos) (if (> (string-length val) 0) (append tokens (list (string_Token val) (quotation_Token #t))) tokens))))
+        (Boolean_Token (add1 pos) (if (> (string-length val) 0) (append tokens (list (string_Token val))) tokens))))
     tokens))
 
 (define (Boolean_Token pos tokens)
@@ -654,7 +654,7 @@
           (ParseResult args (add1 pos))
           ;else parse the next argument (an expression) and recursively call collect_arguments until a rightparen_Token has been read
           (let* ([exp (Parse_Expression pos)])
-            (collect_arguments (ParseResult-nextpos exp) (append args (list (list exp))))))
+            (collecting_arguments (ParseResult-nextpos exp) (append args (list (list exp))))))
       (error "was in the middle of parsing but ran out of tokens")))
           
 
@@ -864,8 +864,6 @@
           (ParseResult (identifier_Token-value (list-ref Tokens pos)) (add1 pos))
           (error "invalid syntax, missing variable name"))
       (error "ran out of tokens while parsing")))
-
-
 
 (define (toplevelparse pos results)
   (if (< pos amount_of_tokens)
