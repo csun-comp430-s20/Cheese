@@ -311,15 +311,13 @@
 ;struct used to encapsulate expressions and statements and point to the next token (how we're building the ast)
 (struct ParseResult (result nextpos))
 
-
-
 (define (Parse_Expression pos)
   (if (< pos amount_of_tokens)
       (if (an_if pos)
-          (let* ([gaurd (parse_guard (+ pos 2))]
-                 [ifTrue (Parse_Expression (ParseResult-nextpos guard))]
+          (let* ([gaurd (Parse_Expression (+ pos 2))]
+                 [ifTrue (Parse_Expression (ParseResult-nextpos gaurd))]
                  [ifFalse (collect_ifFalse_body (ParseResult-nextpos ifTrue))])
-            (ParseResult (If_Expression guard ifTrue ifFalse) (ParseResult-nextpos ifFalse)))
+            (ParseResult (If_Expression gaurd ifTrue ifFalse) (ParseResult-nextpos ifFalse)))
           (Parse_Additive_Expression pos))
       (ParseResult null pos)))
 
@@ -329,7 +327,7 @@
   (if (< pos amount_of_tokens)
       (if (else_Token? (list-ref Tokens pos))
           (let ([exp (Parse_Expression (add1 pos))])
-            (if (rightparen? (list-ref Tokens (ParseResult-nextpos exp)))
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
                 exp
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos exp)))))
           (error "invalid syntax, expected: else but read: " (list-ref Tokens pos)))
@@ -339,7 +337,7 @@
   (if (< pos amount_of_tokens)
       (cond
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_plus_operator (add1 pos))) (assemble_addition_expression (+ pos 2))]
-        [(and (leftparen_Token? (list-refTokens pos)) (a_subtraction_operator (add1 pos))) (assemble_subtraction_expression (+ pos 2))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (a_subtraction_operator (add1 pos))) (assemble_subtraction_expression (+ pos 2))]
         [else (Parse_Multiplicative_Expression pos)])
       (ParseResult null pos)))
 
@@ -349,7 +347,7 @@
         (if (operator_Token? op)
             (equal? "+" (operator_Token-value op))
             #f))
-      #f))
+      (error "ran out of tokens while parsing")))
 
 (define (a_subtraction_operator pos)
   (if (< pos amount_of_tokens)
@@ -357,27 +355,31 @@
         (if (operator_Token? op)
             (equal? "-" (operator_Token-value op))
             #f))
-      #f))
+      (error "ran out of tokens while parsing")))
 
 (define (assemble_addition_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Additive_Expression "+" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Additive_Expression "+" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
 (define (assemble_subtraction_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Additive_Expression "-" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Additive_Expression "-" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
 (define (Parse_Multiplicative_Expression pos)
   (if (< pos amount_of_tokens)
       (cond
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_multiplication_operator (add1 pos))) (assemble_multiplication_expression (+ pos 2))]
-        [(and (leftparen_Token? (list-refTokens pos)) (a_division_operator (add1 pos))) (assemble_division_expression (+ pos 2))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (a_division_operator (add1 pos))) (assemble_division_expression (+ pos 2))]
         [else (Parse_Boolean_Operation_Expression pos)])
       (ParseResult null pos)))
 
@@ -387,7 +389,7 @@
         (if (operator_Token? op)
             (equal? "*" (operator_Token-value op))
             #f))
-      #f))
+      (error "ran out of tokens while parsing")))
 
 (define (a_division_operator pos)
   (if (< pos amount_of_tokens)
@@ -395,32 +397,36 @@
         (if (operator_Token? op)
             (equal? "/" (operator_Token-value op))
             #f))
-      #f))
+      (error "ran out of tokens while parsing")))
 
 (define (assemble_multiplication_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Multiplicative_Expression "*" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Multiplicative_Expression "*" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
-(define (assemble_multiplication_expression pos)
+(define (assemble_division_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Multiplicative_Expression "/" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Multiplicative_Expression "/" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
 (define (Parse_Boolean_Operation_Expression pos)
   (if (< pos amount_of_tokens)
       (cond
-        [(and (leftparen_Token? (list-ref Tokens pos)) (an_equality_operator (add1 pos)) (assemble_eqaulity_expression (+ pos 3))]
-        [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthanequal_operator (add1 pos)) (assemble_lessthanequal_expression (+ pos 3))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (an_equality_operator (add1 pos))) (assemble_eqaulity_expression (+ pos 3))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthanequal_operator (add1 pos))) (assemble_lessthanequal_expression (+ pos 3))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_greaterthanequal_operator (add1 pos))) (assemble_greaterthanequal_expression (+ pos 3))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthan_operator (add1 pos))) (assemble_lessthan_expression (+ pos 2))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_greaterthan_operator (add1 pos))) (assemble_greaterthan_expression (+ pos 2))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_logic_and_operator (add1 pos))) (assemble_logic_and_expression (+ pos 2))]
-        [else (Parse_Primary_Expression pos)])
+        [else (Parse_function_call_expression pos)])
       (ParseResult null pos)))
 
 (define (an_equality_operator pos)
@@ -430,7 +436,7 @@
         (if (and (operator_Token? op1) (operator_Token? op2)) 
             (and (equal? "=" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
             #f))
-      #f))
+      (error "ran out of tokens while parsing")))
 
 (define (a_lessthanequal_operator pos)
   (if (< pos amount_of_tokens)
@@ -439,7 +445,7 @@
         (if (and (operator_Token? op1) (operator_Token? op2)) 
             (and (equal? "<" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
             #f))
-      #f))
+      (error "ran out of tokens to parse")))
 
 (define (a_greaterthanequal_operator pos)
   (if (< pos amount_of_tokens)
@@ -448,50 +454,82 @@
         (if (and (operator_Token? op1) (operator_Token? op2)) 
             (and (equal? ">" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
             #f))
-      #f))
+      (error "ran out of tokens to parse")))
 
 (define (a_lessthan_operator pos)
   (if (< pos amount_of_tokens)
-      (let ([op1 (list-ref Tokens pos)])
+      (let ([op (list-ref Tokens pos)])
         (if (operator_Token? op)
-            (equal? "<" (operator_Token-value op1))
+            (equal? "<" (operator_Token-value op))
             #f))
-      #f))
+      (error "ran out of tokens to parse")))
 
 (define (a_greaterthan_operator pos)
   (if (< pos amount_of_tokens)
-      (let ([op1 (list-ref Tokens pos)])
+      (let ([op (list-ref Tokens pos)])
         (if (operator_Token? op)
-            (equal? ">" (operator_Token-value op1))
+            (equal? ">" (operator_Token-value op))
             #f))
-      #f))
+      (error "ran out of tokens to parse")))
+
+(define (a_logic_and_operator pos)
+  (if (< pos amount_of_tokens)
+      (let ([op (list-ref Tokens pos)])
+        (and_Token? op))
+      (error "ran out of tokens to parse")))
 
 (define (assemble_lessthanequal_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Boolean_Operation_Expression "<=" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Boolean_Operation_Expression "<=" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
 (define (assemble_greaterthanequal_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Boolean_Operation_Expression ">=" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Boolean_Operation_Expression ">=" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
 (define (assemble_lessthan_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Boolean_Operation_Expression "<" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Boolean_Operation_Expression "<" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
 (define (assemble_greaterthan_expression pos)
   (if (< pos amount_of_tokens)
-      (let* ([e1 (Parse_Expression pos)]
-             [e2 (Parse_Expression (ParseResult-nextpos e1))])
-        (ParseResult (Boolean_Operation_Expression ">" e1 e2) (ParseResult-nextpos e2)))
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Boolean_Operation_Expression ">" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
+      (ParseResult null pos)))
+
+(define (assemble_eqaulity_expression pos)
+  (if (< pos amount_of_tokens)
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Boolean_Operation_Expression "==" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
+      (ParseResult null pos)))
+
+(define (assemble_logic_and_expression pos)
+  (if (< pos amount_of_tokens)
+      (let* ([e1 (Parse_Primary pos)]
+             [e2 (Parse_Primary (ParseResult-nextpos e1))])
+        (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
+            (ParseResult (Boolean_Operation_Expression "and" e1 e2) (add1 (ParseResult-nextpos e2)))
+            (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)))))
       (ParseResult null pos)))
 
 (define (Parse_Primary pos)
@@ -501,8 +539,9 @@
           [(integer_Token? tok) (ParseResult (Integer_Expression (integer_Token-value tok)) (add1 pos))]
           [(string_Token? tok) (ParseResult (String_Expression (string_Token-value tok)) (add1 pos))]
           [(boolean_Token? tok) (ParseResult (Boolean_Expression (boolean_Token-value tok)) (add1 pos))]
-          [(identifier_Token? tok) (ParseResult (Variable_Expression (variable_Token-value tok)) (add1 pos))]
-          [
+          [(identifier_Token? tok) (ParseResult (Variable_Expression (identifier_Token-value tok)) (add1 pos))]
+          [else (Parse_Expression pos)]))
+      (ParseResult null pos)))
 
 
 ;helper function, checks if the token at position pos and position pos + 1 are tokens that prefix a function decleration
@@ -516,9 +555,9 @@
       (if (is_function_expression pos)
           (let* (
                  ;t is the type of the function: int, String, boolean
-                 [t (ParseResult (list-ref Tokens (+ pos 2)) (+ pos 3))]
+                 [t (collect_variable_type (+ pos 2))]
                  ;i is the name of the function, an identifier
-                 [i (ParseResult (list-ref Tokens (ParseResult-nextpos t)) (add1 (ParseResult-nextpos t)))]
+                 [i (collect_variable_name (ParseResult-nextpos t))]
                  ;p are the parameters
                  [p (parse_parameter_decleration (ParseResult-nextpos i))]
                  ;b is the body
@@ -531,9 +570,8 @@
                 (ParseResult(Function_Expression t i p b r) (add1 (ParseResult-nextpos r)))
                 ;else throw an error due to invalid syntax
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos r)))))
-            ;(Parse_Expression pos)) to be implemented later when Parse_Expression is created
-          ;temporary... verifies there are still more tokens to be parsed
-          (if (< (add1 pos) amount_of_tokens) (ParseResult null (add1 pos)) (ParseResult null pos)))
+          ;if not a function then try parsing a stmt
+          (Parse_Statement pos))
       ;temporary... don't know what else to return if we run out of tokens
       pos))
 
@@ -590,15 +628,13 @@
       (if (and (leftparen_Token? (list-ref Tokens pos)) (identifier_Token? (list-ref Tokens (add1 pos))))
           ;then collect the name of the function being called and the arguments provided
           ;i is the name of the function being called
-          (let* ([i (ParseResult (Variable_Expression (identifier_Token-value (list-ref Tokens (add1 pos)))) (add1 pos))]
+          (let* ([i (collect_variable_name (add1 pos))]
                  ;a are the arguments being passed in 
                  [a (collect_arguments (ParseResult-nextpos i))])
             ;and return a ParseResult of the Call_Expression and next position
             (ParseResult (Call_Expression i a) (ParseResult-nextpos a)))
-          ;(Parse_statement pos) to be implemented when Parse_Statement is created
-          ;temporary... 
-          (ParseResult null pos))
-      pos))
+          (Parse_Primary pos))
+      (ParseResult null pos)))
 
 ;prepare to collect the arguments
 (define (collect_arguments pos)
@@ -619,19 +655,6 @@
             (collect_arguments (ParseResult-nextpos exp) (append args (list (list exp))))))
       (error "was in the middle of parsing but ran out of tokens")))
           
-;temporary
-(define (Parse_Expression pos) (display pos))
-
-
-(define ast (Parse_function 0))
-
-(define branch (ParseResult-result ast))
-(ParseResult-result (Function_Expression-type branch))
-(ParseResult-result (Function_Expression-identifier branch))
-(ParseResult-result (Function_Expression-parameters branch))
-(ParseResult-result (Function_Expression-body branch))
-(ParseResult-result (Function_Expression-returned branch))
-
 
 ; check if starts with leftParen and While Token "(While"
 (define (isWhile pos)
@@ -642,7 +665,7 @@
 (define (collect_condition pos condition)
   (if (rightparen_Token? (list-ref Tokens pos))
       (ParseResult condition (add1 pos))
-      (let ([cond_stmt (Parse_Expression pos])
+      (let ([cond_stmt (Parse_Expression pos)])
         (collect_condition (ParseResult-nextpos cond_stmt) (append condition (list cond_stmt))))   
   ))
 
@@ -667,13 +690,13 @@
 (define (collect_while_body pos body)
   (if (rightcurly_Token? (list-ref Tokens pos))
       (ParseResult body (add1 pos))
-      (let ([while_body (Parse_Statment pos)])
+      (let ([while_body (Parse_Statement pos)])
         (collect_while_body (ParseResult-nextpos while_body) (append body (list while_body)))
         )))
  
 ; Parse the entire While loop
 (define (Parse_Statement pos)
-  (if (< pos amountOfTokens)
+  (if (< pos amount_of_tokens)
       (if (isWhile pos)
           ; g is gaurd (or the condition for keeping the while loop running)
           (let* ([g (parse_gaurd (+ pos 2))]
@@ -739,16 +762,18 @@
 (define (Parse_Switch_Statement pos)
   (if (< pos amount_of_tokens)
       (if (a_switch_stmt pos)
-          (let* ([identifier (ParseExpression (+ pos 2))]
+          (let* ([identifier (Parse_Primary (+ pos 2))]
                  [cases (collect_switch_cases (ParseResult-nextpos identifier))]
                  [default (collect_default_case (ParseResult-nextpos cases))])
-            (ParseResult (Switch_Statement identifier cases default) (ParseResult-nexpos default)))
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos default)))
+                (ParseResult (Switch_Statement identifier cases default) (add1 (ParseResult-nextpos default)))
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos default)))))
           (Parse_Or pos))
       (ParseResult null pos)))
 
-(define (a_switch_statment pos)
+(define (a_switch_stmt pos)
   (if (< (add1 pos) amount_of_tokens)
-      (and (leftparen_Token? (list-ref pos)) (switch_Token? (list-ref Tokens pos)))
+      (and (leftparen_Token? (list-ref Tokens pos)) (switch_Token? (list-ref Tokens pos)))
       (error "ran out of tokens while parsing")))
 
 (define (collect_switch_cases pos)
@@ -759,48 +784,37 @@
 (define (retrieve_switch_cases pos cases)
   (if (< (add1 pos) amount_of_tokens)
       (if (and (leftparen_Token? (list-ref Tokens pos)) (case_Token? (list-ref Tokens pos)))
-          (let* ([identifier (collect_case_identifier (+ pos 2))]
+          (let* ([identifier (collect_variable_name (+ pos 2))]
                  [exp (Parse_Expression (ParseResult-nextpos identifier))])
             (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
                 (retrieve_switch_cases (add1 (ParseResult-nextpos exp)) (append cases (list (list identifier exp))))
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos exp)))))
           (ParseResult cases pos))
       (error "ran out of tokens while parsing")))
-          
-          
-  
 
-
+(define (collect_default_case pos)
+  (if (< (add1 pos) amount_of_tokens)
+      (if (and (leftparen_Token? (list-ref Tokens pos)) (default_Token? (list-ref Tokens (add1 pos))))
+          (let ([exp (Parse_Expression (+ pos 2))])
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
+                (ParseResult exp (add1 (ParseResult-nextpos exp)))
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos exp)))))
+          (error "invalid syntax, missing default case"))
+      (error "ran out of tokens while parsing")))
 
 ; Check if stmt starts with leftparen and Or token: "(or"
 (define (isOr pos)
   (and (leftparen_Token? (list-ref Tokens pos))
        (or_Token? (list-ref Tokens (add1 pos)))))
 
-; Parse an or expression, check for "(" then collect the expression
-(define (parse_exp pos)
-  (if (leftparen_Token? (list-ref Tokens pos))
-      (collect_or_expr (add1 pos) (list))
-      (error "invalid syntax, expected ( but read : " (list-ref Tokens pos))
-      )
-  )
-
-; Collect everything in the expression until a ")" is seen
-(define (collect_or_expr pos expression)
-  (if (rightparen_Token? (list-ref Tokens pos))
-      (ParseResult expression (add1 pos))
-      (let ([or_expr (Parse_function pos)])
-        (collect_or_expr (ParseResult-nextpos or_expr) (append expression (list or_expr)))
-        ))
-  )
 
 ; Parse the Or Stmt
 (define (Parse_Or pos)
-  (if (< pos amountOfTokens)
+  (if (< pos amount_of_tokens)
       (if (isOr pos)
           ; e1 is expression 1
-          (let* ([e1 (parse_exp (+ pos 2))]
-                 [e2 (parse_exp (ParseResult-nextpos e1))])
+          (let* ([e1 (Parse_Expression (+ pos 2))]
+                 [e2 (Parse_Expression (ParseResult-nextpos e1))])
             ; if end of Or Stmt
             (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos e2)))
                 ;if so retrun a ParseResult containing the while expression and the next position (pos + 1)
@@ -809,12 +823,83 @@
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos e2)
                  ))))
           ; temporary ; not an Or Exp
-          (pos)
+          (Parse_Assignment_Statement pos)
           )
       ; temporary ; ran out of tokens
-      (pos)
+      (ParseResult null pos)
       )
   )
+
+(define (Parse_Assignment_Statement pos)
+  (if (< pos amount_of_tokens)
+      (if (an_assignment pos)
+          (let* ([type (collect_variable_type (+ pos 2))]
+                 [name (collect_variable_name (ParseResult-nextpos type))]
+                 [exp (Parse_Expression (ParseResult-nextpos name))])
+            (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
+                (ParseResult (Assignment_Statement type name exp) (add1 (ParseResult-nextpos exp)))
+                (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos exp)))))
+          (Parse_Expression pos))
+      (ParseResult null pos)))
+
+(define (an_assignment pos)
+  (if (< (add1 pos) amount_of_tokens)
+      (if (and (leftparen_Token? (list-ref Tokens pos)) (operator_Token? (list-ref Tokens (add1 pos))))
+          (equal? "=" (operator_Token-value (list-ref Tokens (add1 pos))))
+          #f)
+      (error "ran out of tokens while parsing")))
+
+(define (collect_variable_type pos)
+  (if (< pos amount_of_tokens)
+      (if (type_Token? (list-ref Tokens pos))
+          (ParseResult (type_Token-value (list-ref Tokens pos)) (add1 pos))
+          (error "invalid syntax, missing variable type"))
+      (error "ran out of tokens while parsing")))
+
+(define (collect_variable_name pos)
+  (if (< pos amount_of_tokens)
+      (if (identifier_Token? (list-ref Tokens pos))
+          (ParseResult (identifier_Token-value (list-ref Tokens pos)) (add1 pos))
+          (error "invalid syntax, missing variable name"))
+      (error "ran out of tokens while parsing")))
+
+
+
+(define toplevelparse
+  (let ([result (Parse_function 0)])
+    (if (< (ParseResult-nextpos result) amount_of_tokens)
+        (error "There are leftover tokens that have not been parsed")
+        result)))
+
+(toplevelparse)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
