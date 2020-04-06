@@ -209,7 +209,7 @@
 
 (define (Switch_Token pos tokens)
   (if (< pos end)
-      (if (is_case (chopped pos))
+      (if (is_switch (chopped pos))
           (Default_Token (+ pos 6) (append tokens (list (switch_Token #t))))
           (Default_Token pos tokens))
       tokens))
@@ -422,9 +422,9 @@
 (define (Parse_Boolean_Operation_Expression pos)
   (if (< pos amount_of_tokens)
       (cond
-        [(and (leftparen_Token? (list-ref Tokens pos)) (an_equality_operator (add1 pos))) (assemble_eqaulity_expression (+ pos 3))]
-        [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthanequal_operator (add1 pos))) (assemble_lessthanequal_expression (+ pos 3))]
-        [(and (leftparen_Token? (list-ref Tokens pos)) (a_greaterthanequal_operator (add1 pos))) (assemble_greaterthanequal_expression (+ pos 3))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (an_equality_operator (add1 pos))) (assemble_eqaulity_expression (+ pos 2))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthanequal_operator (add1 pos))) (assemble_lessthanequal_expression (+ pos 2))]
+        [(and (leftparen_Token? (list-ref Tokens pos)) (a_greaterthanequal_operator (add1 pos))) (assemble_greaterthanequal_expression (+ pos 2))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_lessthan_operator (add1 pos))) (assemble_lessthan_expression (+ pos 2))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_greaterthan_operator (add1 pos))) (assemble_greaterthan_expression (+ pos 2))]
         [(and (leftparen_Token? (list-ref Tokens pos)) (a_logic_and_operator (add1 pos))) (assemble_logic_and_expression (+ pos 2))]
@@ -433,28 +433,25 @@
 
 (define (an_equality_operator pos)
   (if (< pos amount_of_tokens)
-      (let ([op1 (list-ref Tokens pos)]
-            [op2 (list-ref Tokens (add1 pos))])
-        (if (and (operator_Token? op1) (operator_Token? op2)) 
-            (and (equal? "=" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
+      (let ([op (list-ref Tokens pos)])
+        (if (operator_Token? op)
+            (equal? "==" (operator_Token-value op)) 
             #f))
       (error "ran out of tokens while parsing")))
 
 (define (a_lessthanequal_operator pos)
   (if (< pos amount_of_tokens)
-      (let ([op1 (list-ref Tokens pos)]
-            [op2 (list-ref Tokens (add1 pos))])
-        (if (and (operator_Token? op1) (operator_Token? op2)) 
-            (and (equal? "<" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
+      (let ([op (list-ref Tokens pos)])
+        (if (operator_Token? op)
+            (equal? "<=" (operator_Token-value op))
             #f))
       (error "ran out of tokens to parse")))
 
 (define (a_greaterthanequal_operator pos)
   (if (< pos amount_of_tokens)
-      (let ([op1 (list-ref Tokens pos)]
-            [op2 (list-ref Tokens (add1 pos))])
-        (if (and (operator_Token? op1) (operator_Token? op2)) 
-            (and (equal? ">" (operator_Token-value op1)) (equal? "=" (operator_Token-value op1))) 
+      (let ([op (list-ref Tokens pos)])
+        (if (operator_Token? op)
+            (equal? ">=" (operator_Token-value op))
             #f))
       (error "ran out of tokens to parse")))
 
@@ -775,7 +772,7 @@
 
 (define (a_switch_stmt pos)
   (if (< (add1 pos) amount_of_tokens)
-      (and (leftparen_Token? (list-ref Tokens pos)) (switch_Token? (list-ref Tokens pos)))
+      (and (leftparen_Token? (list-ref Tokens pos)) (switch_Token? (list-ref Tokens (add1 pos))))
       (error "ran out of tokens while parsing")))
 
 (define (collect_switch_cases pos)
@@ -785,7 +782,7 @@
 
 (define (retrieve_switch_cases pos cases)
   (if (< (add1 pos) amount_of_tokens)
-      (if (and (leftparen_Token? (list-ref Tokens pos)) (case_Token? (list-ref Tokens pos)))
+      (if (and (leftparen_Token? (list-ref Tokens pos)) (case_Token? (list-ref Tokens (add1 pos))))
           (let* ([identifier (collect_variable_name (+ pos 2))]
                  [exp (Parse_Expression (ParseResult-nextpos identifier))])
             (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
