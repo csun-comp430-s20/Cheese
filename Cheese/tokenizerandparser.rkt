@@ -38,7 +38,7 @@
 (define (is_enum e) (list-prefix? (list #\e #\n #\u #\m #\space) e))
 (define (is_case c) (list-prefix? (list #\c #\a #\s #\e #\space) c))
 (define (is_switch s) (list-prefix? (list #\s #\w #\i #\t #\c #\h #\space) s))
-(define (is_default d) (list-prefix? (list #\d #\e #\a #\u #\l #\t #\space) d))
+(define (is_default d) (list-prefix? (list #\d #\e #\f #\a #\u #\l #\t #\space) d))
 (define (is_other o) (cond
                        [(list? (member o (range 10))) #t]
                        [(list? (member o (range 11 32))) #t]
@@ -798,7 +798,7 @@
             (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
                 (ParseResult exp (add1 (ParseResult-nextpos exp)))
                 (error "invalid syntax, expected: ) but read: " (list-ref Tokens (ParseResult-nextpos exp)))))
-          (error "invalid syntax, missing default case"))
+          (error "invalid syntax, missing default case" (list-ref Tokens (add1 pos))))
       (error "ran out of tokens while parsing")))
 
 ; Check if stmt starts with leftparen and Or token: "(or"
