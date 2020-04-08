@@ -114,9 +114,6 @@
             (collect_body (ParseResult-nextpos exp_or_stmt) (append body (list exp_or_stmt)))))
       (error "ran out of tokens while parsing")))
 
-
-          
-
 ; check if starts with leftParen and While Token "(While"
 (define (isWhile pos)
   (and (leftparen_Token? (list-ref Tokens pos))
@@ -602,7 +599,12 @@
           [(string_Token? tok) (ParseResult (String_Expression (string_Token-value tok)) (add1 pos))]
           [(boolean_Token? tok) (ParseResult (Boolean_Expression (boolean_Token-value tok)) (add1 pos))]
           [(identifier_Token? tok) (ParseResult (Variable_Expression (identifier_Token-value tok)) (add1 pos))]
-          [else (Parse_Expression pos)]))
+          [(leftparen_Token? tok)
+           (let ([exp (Parse_Expression (add1 pos))])
+             (if (rightparen_Token? (list-ref Tokens (ParseResult-nextpos exp)))
+                 (ParseResult (ParseResult-result exp) (add1 (ParseResult-nextpos exp)))
+                 (error "invalid syntax, expecting: ) but read: " (list-ref Tokens (ParseResult-nextpos exp)))))]
+          [else (error "expected an expression but read: " tok)]))
       (ParseResult null pos)))
 
 (define (toplevelparse pos results)
