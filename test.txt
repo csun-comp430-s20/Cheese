@@ -1,0 +1,5 @@
+(def int foo (String s int i) {
+(switch bar (case l "me") (case h "you") (default "no one"))
+(= int v (+ i 7))
+(if (< i v) (- i i) else (+ v v))
+} v)
