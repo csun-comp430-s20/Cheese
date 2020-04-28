@@ -36,14 +36,30 @@
      (let ([gaurd (type_of gamma (ParseResult-result (While_Statement-gaurd exp)))] [body (ParseResult-result (While_Statement-body exp))])
        (if (Bool_Type? gaurd) (type_of (hash-copy gamma) body) (error "While statement expected a gaurd of type boolean but was given a gaurd of type: " gaurd)))]
     [(Function_Expression? exp)
+     (let ([type (determine_type_of (ParseResult-result (Function_Expression-type exp)))] [name (ParseResult-result (Function_Expression-identifier exp))])
+       (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters)) (ParseResult-result (Function_Expression-body)) (ParseResult-result (Function_Expression-returned))) (error name " has already been defined")))]
     [else (error "unrecognized expression")]))
 
+
+(define (type_check_function gamma type name parameters body returned)
+  (hash-set! gamma (name type))
+  (let ([copy (hash-copy gamma)])
+    (update_gamma_with_function_parameters copy parameters)
+    (type_of copy body)
+    (if (equal? (object-name type) (object-name (type_of copy returned))) type (error name " does not return a value of type: " type))))
+
+(define (update_gamma_with_function_parameters copy parameters)
+  (if (not (null? parameters))
+      (update_gamma_with_function_parameters (hash-set! copy ((ParseResult-result (second (first parameters))) (determine_type_of (ParseResult-result (first (first parameters)))))) (rest parameters))
+      copy))
 
 (define (check_ifTrue_and_ifFalse gamma ifTrue ifFalse gaurd)
   (type_of (hash-copy gamma) ifTrue)
   (type_of (hash-copy gamma) ifFalse)
   gaurd)
-  
+
+
+ 
 
 (define (update_gamma_and_return_tau gamma name tau) (hash-set! gamma (name tau)) tau)
 
