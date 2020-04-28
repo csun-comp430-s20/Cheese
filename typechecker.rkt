@@ -26,4 +26,20 @@
          [(and (Bool_Type? exp1) (Bool_Type? exp2)) (Bool_Type)]
          [(and (Int_Type? exp1) (Int_Type? exp2)) (Bool_Type)]
          [else (error "one or more expressions is not a boolean in a boolean operation")]))]
+    [(Assignment_Statement? exp)
+     (let ([tau (determin_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (ParseResult-result (Assignment_Statement-name exp))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
+       (if (equal? (object-name tau) (object-name e)) (hash-set! gamma (name tau)) (error "Type " tau " cannot be converted to " e)))]
     [else (error "unrecognized expression")]))
+
+
+
+
+
+
+
+(define (determine_type_of tau)
+  (cond
+    [(equal? tau "int") (Int_Type)]
+    [(equal? tau "String") (String_Type)]
+    [(equal? tau "boolean") (Bool_Type)]
+    [else (error "unrecognized type: " tau)]))
