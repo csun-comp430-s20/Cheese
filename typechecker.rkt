@@ -32,6 +32,10 @@
     [(Assignment_Statement? exp)
      (let ([tau (determine_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (ParseResult-result (Assignment_Statement-identifier exp))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
        (if (equal? (object-name tau) (object-name e)) (update_gamma_and_return_tau gamma name tau) (error "Type " tau " cannot be converted to " e)))]
+    [(While_Statement? exp)
+     (let ([gaurd (type_of gamma (ParseResult-result (While_Statement-gaurd exp)))] [body (ParseResult-result (While_Statement-body exp))])
+       (if (Bool_Type? gaurd) (type_of (hash-copy gamma) body) (error "While statement expected a gaurd of type boolean but was given a gaurd of type: " gaurd)))]
+    [(Function_Expression? exp)
     [else (error "unrecognized expression")]))
 
 
