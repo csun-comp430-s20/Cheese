@@ -26,15 +26,22 @@
          [(and (Bool_Type? exp1) (Bool_Type? exp2)) (Bool_Type)]
          [(and (Int_Type? exp1) (Int_Type? exp2)) (Bool_Type)]
          [else (error "one or more expressions is not a boolean in a boolean operation")]))]
+    [(If_Expression? exp)
+     (let ([gaurd (type_of gamma (ParseResult-result (If_Expression-gaurd exp)))] [ifTrue (ParseResult-result (If_Expression-ifTrue exp))] [ifFalse (ParseResult-result (If_Expression-ifFalse exp))])
+       (if (Bool_Type? gaurd) (check_ifTrue_and_ifFalse gamma ifTrue ifFalse gaurd) (error "gaurd for if expression is type: " gaurd ". Expected type boolean")))]
     [(Assignment_Statement? exp)
      (let ([tau (determine_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (ParseResult-result (Assignment_Statement-identifier exp))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
-       (if (equal? (object-name tau) (object-name e)) (hash-set! gamma (name tau)) (error "Type " tau " cannot be converted to " e)))]
+       (if (equal? (object-name tau) (object-name e)) (update_gamma_and_return_tau gamma name tau) (error "Type " tau " cannot be converted to " e)))]
     [else (error "unrecognized expression")]))
 
 
+(define (check_ifTrue_and_ifFalse gamma ifTrue ifFalse gaurd)
+  (type_of (hash-copy gamma) ifTrue)
+  (type_of (hash-copy gamma) ifFalse)
+  gaurd)
+  
 
-
-
+(define (update_gamma_and_return_tau gamma name tau) (hash-set! gamma (name tau)) tau)
 
 
 (define (determine_type_of tau)
