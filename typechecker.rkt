@@ -38,15 +38,22 @@
     [(Function_Expression? exp)
      (let ([type (determine_type_of (ParseResult-result (Function_Expression-type exp)))] [name (ParseResult-result (Function_Expression-identifier exp))])
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters)) (ParseResult-result (Function_Expression-body)) (ParseResult-result (Function_Expression-returned))) (error name " has already been defined")))]
+    [(Call_Expression? exp) ;in progress
     [else (error "unrecognized expression")]))
 
 
 (define (type_check_function gamma type name parameters body returned)
-  (hash-set! gamma (name type))
+  (hash-set! gamma (name (list type (collect_function_parameters_types (list) parameters))))
   (let ([copy (hash-copy gamma)])
     (update_gamma_with_function_parameters copy parameters)
     (type_of copy body)
     (if (equal? (object-name type) (object-name (type_of copy returned))) type (error name " does not return a value of type: " type))))
+
+(define (collect_function_parameters_types param_types parameters)
+  (if (not (null? parameters))
+      (collect_function_parameters (append param_types (list (determine_type_of (ParseResult-result (first (first parameters)))))) (rest parameters))
+      param_types))
+
 
 (define (update_gamma_with_function_parameters copy parameters)
   (if (not (null? parameters))
