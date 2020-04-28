@@ -18,7 +18,12 @@
     [(String_Expression? exp) (String_Type)]
     [(Boolean_Expression? exp) (Bool_Type)]
     [(Variable_Expression? exp) (if (hash-has-key? gamma (Variable_Expression-value exp)) (hash-ref (Variable_Expression-value exp)) (error "Variable " (Variable_Expression-value exp) " is out of scope."))]
-    [(Additive_Expression? exp) (if (and (Int_Type? (type_of gamma (Additive_Expression-primary1 exp))) (Int_Type? (type_of gamma (Additive_Expression-primary2 exp)))) (Int_Type) (error "one or more expressions is not an int in an additive expression"))]
-    [(Multiplicative_Expression? exp) (if (and (Int_Type? (type_of gamma (Multiplicative_Expression-primary1 exp))) (Int_Type? (type_of gamma (Multiplicative_Expression-primary2 exp)))) (Int_Type) (error "one or more expressions is not an int in a multiplicative expression"))]
-    [(Boolean_Operation_Expression? exp) (if (and (Bool_Type? (type_of gamma (Boolean_Operation_Expression-primary1 exp))) (Bool_Type? (type_of gamma (Boolean_Operation_Expression-primary2 exp)))) (Bool_Type) (error "one or more expressions is not a boolean in a boolean operation"))]
+    [(Additive_Expression? exp) (if (and (Int_Type? (type_of gamma (ParseResult-result (Additive_Expression-primary1 exp)))) (Int_Type? (type_of gamma (ParseResult-result (Additive_Expression-primary2 exp))))) (Int_Type) (error "one or more expressions is not an int in an additive expression"))]
+    [(Multiplicative_Expression? exp) (if (and (Int_Type? (type_of gamma (ParseResult-result (Multiplicative_Expression-primary1 exp)))) (Int_Type? (type_of gamma (ParseResult-result (Multiplicative_Expression-primary2 exp))))) (Int_Type) (error "one or more expressions is not an int in a multiplicative expression"))]
+    [(Boolean_Operation_Expression? exp)
+     (let ([exp1 (type_of gamma (ParseResult-result (Boolean_Operation_Expression-primary1 exp)))] [exp2 (type_of gamma (ParseResult-result (Boolean_Operation_Expression-primary2 exp)))])
+       (cond
+         [(and (Bool_Type? exp1) (Bool_Type? exp2)) (Bool_Type)]
+         [(and (Int_Type? exp1) (Int_Type? exp2)) (Bool_Type)]
+         [else (error "one or more expressions is not a boolean in a boolean operation")]))]
     [else (error "unrecognized expression")]))
