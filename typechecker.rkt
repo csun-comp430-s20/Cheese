@@ -39,6 +39,7 @@
      (let ([type (determine_type_of (ParseResult-result (Function_Expression-type exp)))] [name (ParseResult-result (Function_Expression-identifier exp))])
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters)) (ParseResult-result (Function_Expression-body)) (ParseResult-result (Function_Expression-returned))) (error name " has already been defined")))]
     [(Call_Expression? exp) (type_check_call_expression gamma (ParseResult-result (Call_Expression-identifier exp)) (ParseResult-result (Call_Expression-arguments exp)))]
+    [(Print_Statement? exp) (type_of gamma (ParseResult-result (Print_Statement-exp exp)))]
     [else (error "unrecognized expression")]))
 
 
