@@ -350,8 +350,8 @@
 
 (define (Parse_Print_Statement pos)
   (if (< pos amount_of_tokens)
-      (if (print_Token? (get_token pos))
-          (let ([exp (Parse_Primary (add1 pos))])
+      (if (and (leftparen_Token? (get_token pos)) (print_Token? (get_token (add1 pos))))
+          (let ([exp (Parse_Primary (+ pos 2))])
             (if (is_rightparen (ParseResult-nextpos exp))
                 (ParseResult (Print_Statement exp) (add1 (ParseResult-nextpos exp)))
                 (error "invalid syntax, expected: ) but read: " (get_token (ParseResult-nextpos exp)))))
