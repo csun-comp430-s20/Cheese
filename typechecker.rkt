@@ -38,9 +38,29 @@
     [(Function_Expression? exp)
      (let ([type (determine_type_of (ParseResult-result (Function_Expression-type exp)))] [name (ParseResult-result (Function_Expression-identifier exp))])
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters)) (ParseResult-result (Function_Expression-body)) (ParseResult-result (Function_Expression-returned))) (error name " has already been defined")))]
-    [(Call_Expression? exp) ;in progress
+    [(Call_Expression? exp) (type_check_call_expression gamma (ParseResult-result (Call_Expression-identifier exp)) (ParseResult-result (Call_Expression-arguments exp)))]
     [else (error "unrecognized expression")]))
 
+
+(define (type_check_call_expression gamma name args)
+  (if (hash-has-key? gamma name)
+      (if (compare_arg_types_with_param_types (second (hash-ref gamma name)) (collect_arg_types gamma (list) args) #false)
+          (first (hash-ref gamma name))
+          (error "arguments do not match parameters"))
+      (error name " has not been declared")))
+
+(define (collect_arg_types gamma types args)
+  (if (not (null? args))
+      (collect_arg_types (append types (list (type_of gamma (ParseResult-result (first args))))) (rest args))
+      types))
+
+(define (compare_arg_types_with_param_types param_types arg_types check)
+  (if (and (equal? (length param_types) (length arg_types)) (and (not (null? param_types)) (not (null? arg_types))))
+      (if (equal? (object-name (first param_types)) (object-name (first arg_types)))
+          (compare_arg_types_with_param_types (rest param_types) (rest arg_types) #true)
+          (error "arguments do not match parameter types"))
+      check))
+      
 
 (define (type_check_function gamma type name parameters body returned)
   (hash-set! gamma (name (list type (collect_function_parameters_types (list) parameters))))
@@ -51,7 +71,7 @@
 
 (define (collect_function_parameters_types param_types parameters)
   (if (not (null? parameters))
-      (collect_function_parameters (append param_types (list (determine_type_of (ParseResult-result (first (first parameters)))))) (rest parameters))
+      (collect_function_parameters_types (append param_types (list (determine_type_of (ParseResult-result (first (first parameters)))))) (rest parameters))
       param_types))
 
 
