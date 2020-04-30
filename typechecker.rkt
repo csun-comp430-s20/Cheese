@@ -37,7 +37,12 @@
                (error "Type " tau " cannot be converted to " e))))]
     [(While_Statement? exp)
      (let ([gaurd (type_of gamma (ParseResult-result (While_Statement-gaurd exp)))] [body (ParseResult-result (While_Statement-body exp))])
-       (if (Bool_Type? gaurd) (type_of (hash-copy gamma) body) (error "While statement expected a gaurd of type boolean but was given a gaurd of type: " gaurd)))]
+       (if (Bool_Type? gaurd)
+           (let ([copy (hash-copy gamma)])
+             (for/each (lambda (arg)
+                         (type_of copy arg))
+               body))
+           (error "While statement expected a gaurd of type boolean but was given a gaurd of type: " gaurd)))]
     [(Function_Expression? exp)
      (let ([type (determine_type_of (ParseResult-result (Function_Expression-type exp)))] [name (ParseResult-result (Function_Expression-identifier exp))])
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters exp)) (ParseResult-result (Function_Expression-body exp)) (ParseResult-result (Function_Expression-returned exp))) (error name " has already been defined")))]
