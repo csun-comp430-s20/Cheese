@@ -10,8 +10,8 @@
 (struct Bool_Type ([hash_code #:auto])
   #:auto-value 2)
 
-(define gamma (make-hash))
-;(Variable_Expression-value exp)
+;(define gamma (make-hash))
+
 (define (type_of gamma exp)
   (cond
     [(Integer_Expression? exp) (Int_Type)]
@@ -31,7 +31,10 @@
        (if (Bool_Type? gaurd) (check_ifTrue_and_ifFalse gamma ifTrue ifFalse gaurd) (error "gaurd for if expression is type: " gaurd ". Expected type boolean")))]
     [(Assignment_Statement? exp)
      (let ([tau (determine_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (ParseResult-result (Assignment_Statement-identifier exp))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
-       (if (equal? (object-name tau) (object-name e)) (update_gamma_and_return_tau gamma name tau) (error "Type " tau " cannot be converted to " e)))]
+       (if (equal? (object-name tau) (object-name e)) (update_gamma_and_return_tau gamma name tau)
+           (if (equal? (object-name tau) (object-name (first e)))
+               (update_gamma_higher_order_and_return_tau gamma name e)
+               (error "Type " tau " cannot be converted to " e))))]
     [(While_Statement? exp)
      (let ([gaurd (type_of gamma (ParseResult-result (While_Statement-gaurd exp)))] [body (ParseResult-result (While_Statement-body exp))])
        (if (Bool_Type? gaurd) (type_of (hash-copy gamma) body) (error "While statement expected a gaurd of type boolean but was given a gaurd of type: " gaurd)))]
@@ -43,11 +46,17 @@
     [(ParseResult? exp) (type_of gamma (ParseResult-result exp))]
     [else (error "unrecognized expression") null]))
 
+(define (update_gamma_higher_order_and_return_tau gamma name e)
+  (hash-set! gamma name e)
+  (first e))
 
 (define (type_check_call_expression gamma name args)
   (if (hash-has-key? gamma name)
       (if (compare_arg_types_with_param_types (second (hash-ref gamma name)) (collect_arg_types gamma (list) args) #false)
-          (first (hash-ref gamma name))
+          (let ([tau (hash-ref gamma name)])
+            (if (equal? (length tau) 3)
+                (list (first tau) (third tau))
+                (first (hash-ref gamma name))))
           (error "arguments do not match parameters"))
       (error name " has not been declared")))
 
@@ -71,7 +80,16 @@
     (for-each (lambda (arg)
               (type_of copy (ParseResult-result arg)))
               body)
-    (if (equal? (object-name type) (object-name (type_of copy returned))) type (error name " does not return a value of type: " type))))
+    (if (Variable_Expression? returned)
+        (let ([tau2 (hash-ref copy (Variable_Expression-value returned))])
+          (if (list? tau2)
+              (if (equal? (object-name type) (object-name (first tau2))) (update_gamma_function_append_symbol_table gamma name (hash-ref copy name) tau2) (error "expected a return type of " type))
+              (if (equal? (object-name type) (object-name tau2)) type (error "expected a return type of " type))))
+        (if (equal? (object-name type) (object-name (type_of copy returned))) type (error "expected a return type of " type)))))
+
+(define (update_gamma_function_append_symbol_table gamma name tau1 tau2)
+  (hash-set! gamma name (append tau1 (list tau2)))
+  tau2)
 
 (define (collect_function_parameters_types param_types parameters)
   (if (not (null? parameters))
@@ -107,7 +125,7 @@
           (error "unable to type check program"))
       gamma))
 
-(define typecheck (top_level_check ast_list gamma))
+(define typecheck (top_level_check ast_list (make-hash)))
 typecheck
 (provide typecheck)
 
