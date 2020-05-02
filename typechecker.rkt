@@ -48,8 +48,27 @@
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters exp)) (ParseResult-result (Function_Expression-body exp)) (ParseResult-result (Function_Expression-returned exp))) (error name " has already been defined")))]
     [(Call_Expression? exp) (type_check_call_expression gamma (ParseResult-result (Call_Expression-identifier exp)) (ParseResult-result (Call_Expression-arguments exp)))]
     [(Print_Statement? exp) (type_of gamma (ParseResult-result (Print_Statement-exp exp)))]
+    [(Switch_Statement? exp) (type_check_switch_statement gamma (ParseResult-result (Switch_Statement-exp exp)) (ParseResult-result (Switch_Statement-cases exp)) (ParseResult-result (Switch_Statement-default exp)))]
     [(ParseResult? exp) (type_of gamma (ParseResult-result exp))]
     [else (error "unrecognized expression") null]))
+
+(define (type_check_switch_statement gamma exp cases default)
+  (type_of (hash-copy gamma) default)
+  (let ([exp_type (type_of gamma exp)])
+    (if (equal? exp_type (type_check_switch_cases (hash-copy gamma) exp_type cases))
+        exp_type
+        (error "type of case does not match type of: " exp_type))))
+
+(define (type_check_switch_case copy exp_type cases)
+  (if (null? (cases))
+      exp_type
+      (if (equal? (object-name exp_type) (object-name (type_of copy (first (first cases)))))
+          (type_check_a_switch_case_body copy exp_type (rest cases) (ParseResult-result (second (first case))))
+          (error "switch case does not have type: " exp_type))))
+
+(define (type_check_a_switch_case_body copy exp_type cases a_case_body)
+  (type_of copy a_case_body)
+  (type_check_switch_case copy exp_type cases))
 
 (define (update_gamma_higher_order_and_return_tau gamma name e)
   (hash-set! gamma name e)
@@ -120,9 +139,7 @@
     [(equal? tau "String") (String_Type)]
     [(equal? tau "boolean") (Bool_Type)]
     [else (error "unrecognized type: " tau)]))
-
-
-
+ 
 (define (top_level_check ast_list gamma)
   (if (not (null? ast_list))
       (if (not (null? (type_of gamma (ParseResult-result (first ast_list)))))

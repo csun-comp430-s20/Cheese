@@ -21,7 +21,7 @@
 (provide (struct-out Or_Statement))
 (struct Fail_Statement (default))
 (provide (struct-out Fail_Statement))
-(struct Switch_Statement (identifier cases default))
+(struct Switch_Statement (exp cases default))
 (provide (struct-out Switch_Statement))
 (struct Call_Expression (identifier arguments))
 (provide (struct-out Call_Expression))
@@ -243,11 +243,11 @@
 (define (Parse_Switch_Statement pos)
   (if (< pos amount_of_tokens)
       (if (a_switch_stmt pos)
-          (let* ([identifier (Parse_Primary (+ pos 2))]
-                 [cases (collect_switch_cases (ParseResult-nextpos identifier))]
+          (let* ([exp (Parse_Primary (+ pos 2))]
+                 [cases (collect_switch_cases (ParseResult-nextpos exp))]
                  [default (collect_default_case (ParseResult-nextpos cases))])
             (if (is_rightparen (ParseResult-nextpos default))
-                (ParseResult (Switch_Statement identifier cases default) (add1 (ParseResult-nextpos default)))
+                (ParseResult (Switch_Statement exp cases default) (add1 (ParseResult-nextpos default)))
                 (error "invalid syntax, expected: ) but read: " (get_token (ParseResult-nextpos default)))))
           (Parse_Or pos))
       (ParseResult null pos)))
@@ -265,11 +265,11 @@
 (define (retrieve_switch_cases pos cases)
   (if (< (add1 pos) amount_of_tokens)
       (if (and (is_leftparen pos) (case_Token? (get_token (add1 pos))))
-          (let* ([identifier (collect_variable_name (+ pos 2))]
-                 [exp (Parse_Expression (ParseResult-nextpos identifier))])
-            (if (is_rightparen (ParseResult-nextpos exp))
-                (retrieve_switch_cases (add1 (ParseResult-nextpos exp)) (append cases (list (list identifier exp))))
-                (error "invalid syntax, expected: ) but read: " (get_token (ParseResult-nextpos exp)))))
+          (let* ([exp1 (Parse_Primary (+ pos 2))]
+                 [exp2 (Parse_Primary (ParseResult-nextpos exp1))])
+            (if (is_rightparen (ParseResult-nextpos exp2))
+                (retrieve_switch_cases (add1 (ParseResult-nextpos exp2)) (append cases (list (list exp1 exp2))))
+                (error "invalid syntax, expected: ) but read: " (get_token (ParseResult-nextpos exp2)))))
           (ParseResult cases pos))
       (error "ran out of tokens while parsing")))
 
