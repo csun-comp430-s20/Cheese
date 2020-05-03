@@ -3,14 +3,13 @@
 
 (struct Int_Type ([hash_code #:auto])
   #:auto-value 0)
-
+(provide (struct-out Int_Type))
 (struct String_Type ([hash_code #:auto])
   #:auto-value 1)
-
+(provide (struct-out String_Type))
 (struct Bool_Type ([hash_code #:auto])
   #:auto-value 2)
-
-;(define gamma (make-hash))
+(provide (struct-out Bool_Type))
 
 (define (type_of gamma exp)
   (cond
@@ -31,9 +30,10 @@
        (if (Bool_Type? gaurd) (check_ifTrue_and_ifFalse gamma ifTrue ifFalse gaurd) (error "gaurd for if expression is type: " gaurd ". Expected type boolean")))]
     [(Assignment_Statement? exp)
      (let ([tau (determine_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (ParseResult-result (Assignment_Statement-identifier exp))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
-       (if (equal? (object-name tau) (object-name e)) (update_gamma_and_return_tau gamma name tau)
+       (if (equal? (object-name tau) (object-name e))
+           (update_gamma_and_return_tau gamma name tau)
            (if (equal? (object-name tau) (object-name (first e)))
-               (update_gamma_higher_order_and_return_tau gamma name e)
+               (update_gamma_and_return_tau gamma name tau)
                (error "Type " tau " cannot be converted to " e))))]
     [(While_Statement? exp)
      (let ([gaurd (type_of gamma (ParseResult-result (While_Statement-gaurd exp)))] [body (ParseResult-result (While_Statement-body exp))])
@@ -55,7 +55,7 @@
 (define (type_check_switch_statement gamma exp cases default)
   (type_of (hash-copy gamma) default)
   (let ([exp_type (type_of gamma exp)])
-    (if (equal? exp_type (type_check_switch_cases (hash-copy gamma) exp_type cases))
+    (if (equal? exp_type (type_check_switch_case (hash-copy gamma) exp_type cases))
         exp_type
         (error "type of case does not match type of: " exp_type))))
 
@@ -63,7 +63,7 @@
   (if (null? (cases))
       exp_type
       (if (equal? (object-name exp_type) (object-name (type_of copy (first (first cases)))))
-          (type_check_a_switch_case_body copy exp_type (rest cases) (ParseResult-result (second (first case))))
+          (type_check_a_switch_case_body copy exp_type (rest cases) (ParseResult-result (second (first cases))))
           (error "switch case does not have type: " exp_type))))
 
 (define (type_check_a_switch_case_body copy exp_type cases a_case_body)
@@ -77,10 +77,7 @@
 (define (type_check_call_expression gamma name args)
   (if (hash-has-key? gamma name)
       (if (compare_arg_types_with_param_types (second (hash-ref gamma name)) (collect_arg_types gamma (list) args) #false)
-          (let ([tau (hash-ref gamma name)])
-            (if (equal? (length tau) 3)
-                (list (first tau) (third tau))
-                (first (hash-ref gamma name))))
+          (first (hash-ref gamma name))
           (error "arguments do not match parameters"))
       (error name " has not been declared")))
 
@@ -107,7 +104,7 @@
     (if (Variable_Expression? returned)
         (let ([tau2 (hash-ref copy (Variable_Expression-value returned))])
           (if (list? tau2)
-              (if (equal? (object-name type) (object-name (first tau2))) (update_gamma_function_append_symbol_table gamma name (hash-ref copy name) tau2) (error "expected a return type of " type))
+              (if (equal? (object-name type) (object-name (first tau2))) (first tau2) (error "expected a return type of " type))
               (if (equal? (object-name type) (object-name tau2)) type (error "expected a return type of " type))))
         (if (equal? (object-name type) (object-name (type_of copy returned))) type (error "expected a return type of " type)))))
 
@@ -147,9 +144,9 @@
           (error "unable to type check program"))
       gamma))
 
-(define typecheck (top_level_check ast_list (make-hash)))
-typecheck
-(provide typecheck)
+(define program (top_level_check ast_list (make-hash)))
+program
+(provide program)
 
 
 
