@@ -102,17 +102,12 @@
               (type_of copy (ParseResult-result arg)))
               body)
     (let ([tau2 (type_of copy returned)])
-      (if (list? tau2)
-          (if (equal? (object-name type) (object-name (first tau2))) (add_function_to_gamma gamma name tau2 (collect_function_parameters_types (list) parameters (list))) (error "expected a return type of " type))
-          (if (equal? (object-name type) (object-name tau2)) (add_function_to_gamma gamma name tau2 (collect_function_parameters_types (list) parameters (list))) (error "expected a return type of " type))))))
-      
-    ;(hash-set! gamma name (list (type_of copy returned) (collect_function_parameters_types (list) parameters (list))))
-    ;(if (Variable_Expression? returned)
-     ;   (let ([tau2 (hash-ref copy (Variable_Expression-value returned))])
-      ;    (if (list? tau2)
-       ;       (if (equal? (object-name type) (object-name (first tau2))) (update_gamma_function_append_symbol_table gamma name (hash-ref copy name) tau2) (error "expected a return type of " type))
-        ;      (if (equal? (object-name type) (object-name tau2)) type (error "expected a return type of " type))))
-        ;(if (equal? (object-name type) (object-name (type_of copy returned))) type (error "expected a return type of " type)))))
+      (if (equal? (object-name type) (object-name (unpack_list tau2))) (add_function_to_gamma gamma name tau2 (collect_function_parameters_types (list) parameters (list))) (error "expected a return type of " type)))))
+
+(define (unpack_list list)
+  (if (list? list)
+      (unpack_list (first list))
+      list))
 
 (define (add_function_to_gamma gamma name type params)
   (hash-set! gamma name (list type params))
