@@ -33,7 +33,7 @@
        (if (equal? (object-name tau) (object-name e))
            (update_gamma_and_return_tau gamma name tau)
            (if (equal? (object-name tau) (object-name (first e)))
-               (update_gamma_and_return_tau gamma name tau)
+               (update_gamma_higher_order_and_return_tau gamma name e)
                (error "Type " tau " cannot be converted to " e))))]
     [(While_Statement? exp)
      (let ([gaurd (type_of gamma (ParseResult-result (While_Statement-gaurd exp)))] [body (ParseResult-result (While_Statement-body exp))])
@@ -76,10 +76,13 @@
 
 (define (type_check_call_expression gamma name args)
   (if (hash-has-key? gamma name)
-      (if (compare_arg_types_with_param_types (second (hash-ref gamma name)) (collect_arg_types gamma (list) args) #false)
-          (first (hash-ref gamma name))
+      (if (compare_arg_types_with_param_types  (second (hash-ref gamma name)) (collect_arg_types gamma (list) args) #false)
+          (let ([tau (hash-ref gamma name)])
+            (if (equal? (length tau) 3)
+                (third tau)
+                (first (hash-ref gamma name))))
           (error "arguments do not match parameters"))
-      (error name " has not been declared")))
+  (error name " has not been declared")))
 
 (define (collect_arg_types gamma types args)
   (if (not (null? args))
@@ -104,7 +107,7 @@
     (if (Variable_Expression? returned)
         (let ([tau2 (hash-ref copy (Variable_Expression-value returned))])
           (if (list? tau2)
-              (if (equal? (object-name type) (object-name (first tau2))) (first tau2) (error "expected a return type of " type))
+              (if (equal? (object-name type) (object-name (first tau2))) (update_gamma_function_append_symbol_table gamma name (hash-ref copy name) tau2) (error "expected a return type of " type))
               (if (equal? (object-name type) (object-name tau2)) type (error "expected a return type of " type))))
         (if (equal? (object-name type) (object-name (type_of copy returned))) type (error "expected a return type of " type)))))
 
