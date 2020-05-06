@@ -92,10 +92,8 @@
           (compare_arg_types_with_param_types (rest param_types) (rest arg_types) #true)
           (error "arguments do not match parameter types"))
       check))
-      
 
 (define (type_check_function gamma type name parameters body returned)
-  (hash-set! gamma name (list type (collect_function_parameters_types (list) parameters (list))))
   (let ([copy (hash-copy gamma)])
     (update_gamma_with_function_parameters copy parameters)
     (for-each (lambda (arg)
