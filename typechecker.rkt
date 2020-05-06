@@ -98,7 +98,7 @@
       
 
 (define (type_check_function gamma type name parameters body returned)
-  (hash-set! gamma name (list type (collect_function_parameters_types (list) parameters)))
+  (hash-set! gamma name (list type (collect_function_parameters_types (list) parameters (list))))
   (let ([copy (hash-copy gamma)])
     (update_gamma_with_function_parameters copy parameters)
     (for-each (lambda (arg)
@@ -115,9 +115,12 @@
   (hash-set! gamma name (append tau1 (list tau2)))
   tau2)
 
-(define (collect_function_parameters_types param_types parameters)
+(define (collect_function_parameters_types param_types parameters param_names_holder)
   (if (not (null? parameters))
-      (collect_function_parameters_types (append param_types (list (determine_type_of (ParseResult-result (first (first parameters)))))) (rest parameters))
+      (let ([a_param (ParseResult-result (first (first parameters)))])
+        (if (not (member a_param param_names_holder))
+            (collect_function_parameters_types (append param_types (list (determine_type_of a_param))) (rest parameters) (append param_names_holder (list a_param)))
+            (error "duplicate parameter")))
       param_types))
 
 
