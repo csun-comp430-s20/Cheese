@@ -77,10 +77,7 @@
 (define (type_check_call_expression gamma name args)
   (if (hash-has-key? gamma name)
       (if (compare_arg_types_with_param_types  (second (hash-ref gamma name)) (collect_arg_types gamma (list) args) #false)
-          (let ([tau (hash-ref gamma name)])
-            (if (equal? (length tau) 3)
-                (third tau)
-                (first (hash-ref gamma name))))
+          (first (hash-ref gamma name))
           (error "arguments do not match parameters"))
   (error name " has not been declared")))
 
@@ -104,12 +101,22 @@
     (for-each (lambda (arg)
               (type_of copy (ParseResult-result arg)))
               body)
-    (if (Variable_Expression? returned)
-        (let ([tau2 (hash-ref copy (Variable_Expression-value returned))])
-          (if (list? tau2)
-              (if (equal? (object-name type) (object-name (first tau2))) (update_gamma_function_append_symbol_table gamma name (hash-ref copy name) tau2) (error "expected a return type of " type))
-              (if (equal? (object-name type) (object-name tau2)) type (error "expected a return type of " type))))
-        (if (equal? (object-name type) (object-name (type_of copy returned))) type (error "expected a return type of " type)))))
+    (let ([tau2 (type_of copy returned)])
+      (if (list? tau2)
+          (if (equal? (object-name type) (object-name (first tau2))) (add_function_to_gamma gamma name tau2 (collect_function_parameters_types (list) parameters (list))) (error "expected a return type of " type))
+          (if (equal? (object-name type) (object-name tau2)) (add_function_to_gamma gamma name tau2 (collect_function_parameters_types (list) parameters (list))) (error "expected a return type of " type))))))
+      
+    ;(hash-set! gamma name (list (type_of copy returned) (collect_function_parameters_types (list) parameters (list))))
+    ;(if (Variable_Expression? returned)
+     ;   (let ([tau2 (hash-ref copy (Variable_Expression-value returned))])
+      ;    (if (list? tau2)
+       ;       (if (equal? (object-name type) (object-name (first tau2))) (update_gamma_function_append_symbol_table gamma name (hash-ref copy name) tau2) (error "expected a return type of " type))
+        ;      (if (equal? (object-name type) (object-name tau2)) type (error "expected a return type of " type))))
+        ;(if (equal? (object-name type) (object-name (type_of copy returned))) type (error "expected a return type of " type)))))
+
+(define (add_function_to_gamma gamma name type params)
+  (hash-set! gamma name (list type params))
+  type)
 
 (define (update_gamma_function_append_symbol_table gamma name tau1 tau2)
   (hash-set! gamma name (append tau1 (list tau2)))
@@ -153,11 +160,6 @@
 (define program (top_level_check ast_list (make-hash)))
 program
 (provide program)
-
-
-
-
-
 
 
 
