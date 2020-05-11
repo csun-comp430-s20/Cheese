@@ -1,14 +1,6 @@
 #lang racket
-;Tokenizer test file
-(require rackunit)
-
-;Part 1 of creating a test 
-;put characters inside this list 
-(define characters (list #\1 #\" #\t #\e #\s #\t #\"))
-;jump to line 292 for Part 2 of creating a test 
-
-
-
+;Tokenizer
+(require "FileReader.rkt")
 (define end (length characters))
 
 (define (item pos) (char->integer (list-ref characters pos)))
@@ -289,48 +281,7 @@
           (error (concat "invalid character: " (item  pos)))
           (Integer_Token pos "" tokens))
       tokens))
-;Part 2 of creating a test
-;format for creating a check: (check equal? ({struct type expected}-{a property of the struct type} (first ({name of procedure} {index of character where you want to start checking} "" (list)))) {string representation of expected result})
 
-
-(check equal? (integer_Token-value (first (Integer_Token 0 "" (list)))) "1")
-
-(check equal? (string_Token-value (first (Quotation_Token 1 "" (list)))) "test")
-
-(check equal? (boolean_Token-value (first (Boolean_Token 0 "" (list)))) "True ")
-(check equal? (boolean_Token-value (first (Boolean_Token 0 "" (list)))) "False ")
-(check equal? (while_Token-value (first (While_Token 0 "" (list)))) "while ")
-(check equal? (if_Token-value (first (If_Token 0 "" (list)))) "if ")
-(check equal? (else_Token-value (first (Else_Token 0 "" (list)))) "else ")
-(check equal? (or_Token-value (first (Or_Token 0 "" (list)))) "or ")
-(check equal? (fail_Token-value (first (Fail_Token 0 "" (list)))) "fail ")
-(check equal? (print_Token-value (first (Print_Token 0 "" (list)))) "print ")
-(check equal? (not_Token-value (first (Not_Token 0 "" (list)))) "not ")
-(check equal? (and_Token-value (first (And_Token 0 "" (list)))) "and ")
-(check equal? (type_Token-value (first (Type_Token 0 "" (list)))) "int ")
-(check equal? (type_Token-value (first (Type_Token 0 "" (list)))) "String ")
-(check equal? (type_Token-value (first (Type_Token 0 "" (list)))) "boolean ")
-(check equal? (function_Token-value (first (Function_Token 0 "" (list)))) "def ")
-(check equal? (enum_Token-value (first (Enum_Token 0 "" (list)))) "enum ")
-(check equal? (case_Token-value (first (Case_Token 0 "" (list)))) "case ")
-(check equal? (switch_Token-value (first (Switch_Token 0 "" (list)))) "switch ")
-(check equal? (default_Token-value (first (Default_Token 0 "" (list)))) "default ")
-(check equal? (identifier_Token-value (first (Identifier_Token 0 "" (list)))) "x ")
-(check equal? (leftparen_Token-value (first (LeftParen_Token 0 "" (list)))) "(")
-(check equal? (rightparen_Token-value (first (RightParen_Token 0 "" (list)))) ")")
-(check equal? (operator_Token-value (first (Operator_Token 0 "" (list)))) "*")
-(check equal? (operator_Token-value (first (Operator_Token 0 "" (list)))) "+")
-(check equal? (operator_Token-value (first (Operator_Token 0 "" (list)))) "-")
-(check equal? (operator_Token-value (first (Operator_Token 0 "" (list)))) "/")
-(check equal? (operator_Token-value (first (Operator_Token 0 "" (list)))) "<")
-(check equal? (operator_Token-value (first (Operator_Token 0 "" (list)))) "=")
-(check equal? (operator_Token-value (first (Operator_Token 0 "" (list)))) ">")
-(check equal? (leftcurly_Token-value (first (LeftCurlyBracket_Token 0 "" (list)))) "{")
-(check equal? (rightcurly_Token-value (first (RightCurlyBracket_Token 0 "" (list)))) "}")
-
-
-
-;Part 3
-;if nothing happens after running this file it worked
-
-
+(define (tokenizer pos) (Integer_Token pos "" (list)))
+(define Tokens (tokenizer 0))
+(provide Tokens)

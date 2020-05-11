@@ -1,0 +1,1 @@
+("7.6" racket ("b9ceb2ef15cb0154e682b4d603b8bf923986d6bf" . "ac45098c8f8054a1f801cbd1e9de6eb94f2d3868") #"/Users/SangatShah/Desktop/SCHOOL/SPRING 2020/COMP 430/Cheese/FileReader.rkt" (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))
