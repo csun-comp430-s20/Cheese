@@ -207,7 +207,7 @@
       (ParseResult null pos)))
 
 (define (an_enum_stmt pos)
-  (if (< (+ pos 2) amount_of_tokens)
+  (if (< pos amount_of_tokens)
       (and (is_leftparen pos) (enum_Token? (get_token (add1 pos))))
       (error "ran out of tokens while parsing")))
 
@@ -234,7 +234,7 @@
       (error "ran out of tokens while parsing")))
 
 (define (get_case pos)
-  (if (< (add1 pos) amount_of_tokens)
+  (if (< pos amount_of_tokens)
       (if (and (case_Token? (get_token pos)) (identifier_Token? (get_token (add1 pos))))
           (ParseResult (Variable_Expression (identifier_Token-value (get_token (add1 pos)))) (+ pos 2))
           (error "invalid syntax, expected: case but read: " (get_token pos)))
@@ -253,7 +253,7 @@
       (ParseResult null pos)))
 
 (define (a_switch_stmt pos)
-  (if (< (add1 pos) amount_of_tokens)
+  (if (< pos amount_of_tokens)
       (and (is_leftparen pos) (switch_Token? (get_token (add1 pos))))
       (error "ran out of tokens while parsing")))
 
@@ -263,7 +263,7 @@
       (error "ran out of tokens while parsing")))
 
 (define (retrieve_switch_cases pos cases)
-  (if (< (add1 pos) amount_of_tokens)
+  (if (< pos amount_of_tokens)
       (if (and (is_leftparen pos) (case_Token? (get_token (add1 pos))))
           (let* ([exp1 (Parse_Primary (+ pos 2))]
                  [exp2 (Parse_Primary (ParseResult-nextpos exp1))])
@@ -274,7 +274,7 @@
       (error "ran out of tokens while parsing")))
 
 (define (collect_default_case pos)
-  (if (< (add1 pos) amount_of_tokens)
+  (if (< pos amount_of_tokens)
       (if (and (is_leftparen pos) (default_Token? (get_token (add1 pos))))
           (let ([exp (Parse_Expression (+ pos 2))])
             (if (is_rightparen (ParseResult-nextpos exp))
@@ -323,7 +323,7 @@
       (ParseResult null pos)))
 
 (define (an_assignment pos)
-  (if (< (add1 pos) amount_of_tokens)
+  (if (< pos amount_of_tokens)
       (if (and (is_leftparen pos) (operator_Token? (get_token (add1 pos))))
           (equal? "=" (operator_Token-value (get_token (add1 pos))))
           #f)
