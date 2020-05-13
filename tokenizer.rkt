@@ -6,7 +6,6 @@
 (define (item pos) (char->integer (list-ref characters pos)))
 (define (to_string n) (string (integer->char n)))
 (define (concat val x) (string-append val (to_string x)))
-  
 
 (define (is_int n) (and (> n 47) (< n 58)))
 (define (is_letter s) (or (and (> s 64) (< s 91)) (and (> s 96) (< s 123))))
@@ -33,10 +32,11 @@
 (define (is_case c) (list-prefix? (list #\c #\a #\s #\e #\space) c))
 (define (is_switch s) (list-prefix? (list #\s #\w #\i #\t #\c #\h #\space) s))
 (define (is_default d) (list-prefix? (list #\d #\e #\f #\a #\u #\l #\t #\space) d))
+(define (is_period p) (= p 46))
 (define (is_other o) (cond
                        [(list? (member o (range 10))) #t]
                        [(list? (member o (range 11 32))) #t]
-                       [(list? (member o (list 33 35 36 37 38 39 44 46 47 58 59 63 64 124 126 127))) #t]
+                       [(list? (member o (list 33 35 36 37 38 39 44 47 58 59 63 64 124 126 127))) #t]
                        [(list? (member o (range 91 97))) #t]
                        [else #f]))
 
@@ -81,6 +81,8 @@
 (provide (struct-out function_Token))
 (struct enum_Token (default))
 (provide (struct-out enum_Token))
+(struct period_Token (default))
+(provide (struct-out period_Token))
 (struct switch_Token (default))
 (provide (struct-out switch_Token))
 (struct default_Token (default))
@@ -91,6 +93,7 @@
 (provide (struct-out leftparen_Token))
 
 (define (chopped pos) (take-right characters (- end pos)))
+
 
 (define (Integer_Token pos val tokens)
   (if (< pos end)
@@ -229,8 +232,16 @@
     (let ([i (item pos)])
       (if (is_letter i)
           (Identifier_Token (add1 pos) (concat val i) tokens)
-          (LeftParen_Token pos (if (> (string-length val) 0) (append tokens (list (identifier_Token val))) tokens))))
+          (Period_Token pos (if (> (string-length val) 0) (append tokens (list (identifier_Token val))) tokens))))
     tokens))
+
+(define (Period_Token pos tokens)
+  (if (< pos end)
+      (let ([i (item pos)])
+        (if (is_period i)
+            (LeftParen_Token (add1 pos) (append tokens (list (period_Token #t))))
+            (LeftParen_Token pos tokens)))
+      tokens))
 
 (define (LeftParen_Token pos tokens)
   (if (< pos end)

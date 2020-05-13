@@ -11,6 +11,10 @@
   #:auto-value 2)
 (provide (struct-out Bool_Type))
 
+(struct Enum_Type ([hash_code #:auto])
+  #:auto-value 3)
+(provide (struct-out Enum_Type))
+
 (define (type_of gamma exp)
   (cond
     [(Integer_Expression? exp) (Int_Type)]
@@ -30,11 +34,13 @@
        (if (Bool_Type? gaurd) (check_ifTrue_and_ifFalse gamma ifTrue ifFalse gaurd) (error "gaurd for if expression is type: " gaurd ". Expected type boolean")))]
     [(Assignment_Statement? exp)
      (let ([tau (determine_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (ParseResult-result (Assignment_Statement-identifier exp))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
-       (if (equal? (object-name tau) (object-name e))
-           (update_gamma_and_return_tau gamma name tau)
-           (if (equal? (object-name tau) (object-name (first e)))
-               (update_gamma_higher_order_and_return_tau gamma name e)
-               (error "Type " tau " cannot be converted to " e))))]
+       (if (hash-has-key? gamma name)
+           (error "variable " name " has already been declared.")
+           (if (equal? (object-name tau) (object-name e))
+               (update_gamma_and_return_tau gamma name tau)
+               (if (equal? (object-name tau) (object-name (first e)))
+                   (update_gamma_higher_order_and_return_tau gamma name e)
+                   (error "Type " tau " cannot be converted to " e)))))]
     [(While_Statement? exp)
      (let ([gaurd (type_of gamma (ParseResult-result (While_Statement-gaurd exp)))] [body (ParseResult-result (While_Statement-body exp))])
        (if (Bool_Type? gaurd)
@@ -48,9 +54,26 @@
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters exp)) (ParseResult-result (Function_Expression-body exp)) (ParseResult-result (Function_Expression-returned exp))) (error name " has already been defined")))]
     [(Call_Expression? exp) (type_check_call_expression gamma (ParseResult-result (Call_Expression-identifier exp)) (ParseResult-result (Call_Expression-arguments exp)))]
     [(Print_Statement? exp) (type_of gamma (ParseResult-result (Print_Statement-exp exp)))]
+    [(Enum_Statement? exp) (type_check_enum_statement gamma (ParseResult-result (Enum_Statement-identifier exp)) (ParseResult-result (Enum_Statement-cases exp)))]
     [(Switch_Statement? exp) (type_check_switch_statement gamma (ParseResult-result (Switch_Statement-exp exp)) (ParseResult-result (Switch_Statement-cases exp)) (ParseResult-result (Switch_Statement-default exp)))]
     [(ParseResult? exp) (type_of gamma (ParseResult-result exp))]
     [else (error "unrecognized expression") null]))
+
+
+(define (type_check_enum_statement gamma name cases)
+  (if (hash-has-key? gamma name)
+      (error "identifier " name " has already been declared.")
+      (type_check_enum_cases gamma cases (list)))
+  (hash-set! gamma name (Enum_Type))
+  (hash-ref gamma name))
+
+
+(define (type_check_enum_cases gamma cases collection)
+  (if (null? cases)
+      (Enum_Type)
+      (if (and (not (hash-has-key? gamma (Variable_Expression-value (ParseResult-result (first cases))))) (not (member collection (Variable_Expression-value (ParseResult-result (first cases))))))
+          (type_check_enum_cases gamma (rest cases) (append collection (list (first cases))))
+          (error "identifier " (Variable_Expression-value (ParseResult-result (first cases))) " has already been declared."))))
 
 (define (type_check_switch_statement gamma exp cases default)
   (type_of (hash-copy gamma) default)
