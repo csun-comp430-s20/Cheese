@@ -8,6 +8,16 @@
 ;PART 1
 ;Put Tokens to be tested inside this list
 (define Tokens (list (integer_Token "1") (string_Token "test")))
+(define boolTokens (list (boolean_Token "true") (boolean_Token "false")))
+(define variableTokens (list (identifier_Token "x")))
+(define additionTokens (list (operator_Token "+") (integer_Token "1") (integer_Token "2")))
+(define multiplicationTokens (list (operator_Token "*") (integer_Token "1") ( integer_Token "3")))
+(define ifTokens (list (if_Token "if") (string_Token "true") (string_Token "false")))
+(define boolOpTokens (list (operator_Token "<") (integer_Token "1") (integer_Token "2")))
+(define whileTokens (list (boolean_Token "true") (string_Token "while true")))
+(define enumTokens (list (identifier_Token "enum") (case_Token "case")))
+(define orTokens (list (boolean_Token "true") (boolTokens "false")))
+(define failTokens (list (fail_Token "default")))
 
 ;amount of tokens to parse
 (define amount_of_tokens (length Tokens))
@@ -650,6 +660,38 @@
 (check equal? (Integer_Expression-value (ParseResult-result (first (toplevelparse 0 (list))))) "1")
 
 (check equal? (String_Expression-value (ParseResult-result (first (toplevelparse 1 (list))))) "test")
+(check equal? (Boolean_Expression-value (ParseResult-result (first (toplevelparse 0 (boolTokens))))) "True")
+(check equal? (Boolean_Expression-value (ParseResult-result (first (toplevelparse 1 (boolTokens))))) "False")
+
+(check equal? (If_Expression-gaurd (ParseResult-result (first (toplevelparse 0 (ifTokens))))) "if")
+(check equal? (If_Expression-ifTrue (ParseResult-result (first (toplevelparse 1 (ifTokens))))) "true")
+(check equal? (If_Expression-ifFalse (ParseResult-result (first (toplevelparse 2 (ifTokens))))) "false")
+
+(check equal? (Additive_Expression-operand (ParseResult-result (first (toplevelparse 0 (additionTokens))))) "+")
+(check equal? (Additive_Expression-primary1 (ParseResult-result (first (toplevelparse 1 (additionTokens))))) "1")
+(check equal? (Additive_Expression-primary2 (ParseResult-result (first (toplevelparse 2 (additionTokens))))) "2")
+
+(check equal? (Multiplicative_Expression-operand (ParseResult-result (first (toplevelparse 0 (multiplicationTokens))))) "*")
+(check equal? (Multiplicative_Expression-primary1 (ParseResult-result (first (toplevelparse 1 (multiplicationTokens))))) "1")
+(check equal? (Multiplicative_Expression-primary2 (ParseResult-result (first (toplevelparse 2 (multiplicationTokens))))) "3")
+
+(check equal? (Boolean_Operation_Expression-operand (ParseResult-result (first (toplevelparse 0 (boolOpTokens))))) "<")
+(check equal? (Boolean_Operation_Expression-primary1 (ParseResult-result (first (toplevelparse 1 (boolOpTokens))))) "1")
+(check equal? (Boolean_Operation_Expression-primary2 (ParseResult-result (first (toplevelparse 2 (boolOpTokens))))) "2")
+
+; not sure how to parse check body
+(check equal? (While_Statement-gaurd (ParseResult-result (first (toplevelparse 0 (whileTokens))))) "true")
+(check equal? (While_Statement-body (ParseResult-result (first (toplevelparse 1 (whileTokens))))) "while true")
+
+(check equal? (Enum_Statement-identifier (ParseResult-result (first (toplevelparse 0 (enumTokens))))) "enum")
+(check equal? (Enum_Statement-cases (ParseResult-result (first (toplevelparse 1 (enumTokens))))) "case")
+
+(check equal? (Or_Statement-exp1 (ParseResult-result (first (toplevelparse 0 (orTokens))))) "true")
+(check equal? (Or_Statement-exp2 (ParseResult-result (first (toplevelparse 1 (orTokens))))) "false")
+
+(check equal? Fail_Statement-default (ParseResult-result (first (toplevelparse 0 (failTokens)))) "default")
+
+
 
 ;Part 3
 ;If nothing happens after running this then it worked
