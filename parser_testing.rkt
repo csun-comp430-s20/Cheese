@@ -691,7 +691,15 @@
 
 (check equal? Fail_Statement-default (ParseResult-result (first (toplevelparse 0 (failTokens)))) "default")
 
+(check equal? Switch_Statement)
 
+(check equal? Call_Expression)
+
+(check equal? Assignment_Statement)
+
+(check equal? Print_Statement-exp (ParseResult-result (first (toplevelparse 0 (printTokens)))))
+
+(check equal? Function_Expression)
 
 ;Part 3
 ;If nothing happens after running this then it worked
