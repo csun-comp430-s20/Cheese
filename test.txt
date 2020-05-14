@@ -1,5 +1,19 @@
-(def int foo (String s int i) {
-(switch bar (case l "me") (case h "you") (default "no one"))
-(= int v (+ i 7))
-(if (< i v) (- i i) else (+ v v))
-} v)
+(def int foo (int i) {
+   (def int bar (int j)
+      {} (+ i j))
+   } bar)
+
+(= int t (foo 2))
+(= int peep (t 3))
+
+(enum y (case jay case scott))
+
+(switch y.jay
+    (case y.jay (foo 4))
+    (case y.scott (+ peep 6))
+    (default (- peep 2)))
+
+(= int h 7)
+(= int r (+ h h))
+
+(print (r))
