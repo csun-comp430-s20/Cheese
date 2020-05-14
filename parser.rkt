@@ -39,17 +39,17 @@
 (provide (struct-out Variable_Expression))
 (struct Function_Expression (type identifier parameters body returned))
 (provide (struct-out Function_Expression))
+(struct Enum_Reference_Statement (enum_name enum_case))
+(provide (struct-out Enum_Reference_Statement))
 
 ;struct used to encapsulate expressions and statements and point to the next token (how we're building the ast)
 (struct ParseResult (result nextpos))
 (provide (struct-out ParseResult))
 
-
 (define (get_token pos) (list-ref Tokens pos))
 
 (define (is_leftparen pos) (leftparen_Token? (get_token pos)))
 (define (is_rightparen pos) (rightparen_Token? (get_token pos)))
-
 
 ;helper function, checks if the token at position pos and position pos + 1 are tokens that prefix a function decleration
 (define (is_function_expression pos) (and (is_leftparen pos) (function_Token? (get_token (add1 pos)))))
@@ -202,7 +202,9 @@
       (if (an_enum_stmt pos)
           (let* ([identifier (collect_enum_name (+ pos 2))]
                  [cases (collect_enum_cases (ParseResult-nextpos identifier))])
-            (ParseResult (Enum_Statement identifier cases) (ParseResult-nextpos cases)))
+            (if (is_rightparen (ParseResult-nextpos cases))
+                (ParseResult (Enum_Statement identifier cases) (add1 (ParseResult-nextpos cases)))
+                (error "incorrect syntax, missing a )")))
           (Parse_Switch_Statement pos))
       (ParseResult null pos)))
 
@@ -230,8 +232,9 @@
       (if (is_rightparen pos)
           (ParseResult cases (add1 pos))
           (let ([a_case (get_case pos)])
-            (retrieve_enum_cases (ParseResult-nextpos a_case) (append cases (list (list a_case))))))
+            (retrieve_enum_cases (ParseResult-nextpos a_case) (append cases (list a_case)))))
       (error "ran out of tokens while parsing")))
+
 
 (define (get_case pos)
   (if (< pos amount_of_tokens)
@@ -240,10 +243,11 @@
           (error "invalid syntax, expected: case but read: " (get_token pos)))
       (error "ran out of tokens while parsing")))
 
+
 (define (Parse_Switch_Statement pos)
   (if (< pos amount_of_tokens)
       (if (a_switch_stmt pos)
-          (let* ([exp (Parse_Primary (+ pos 2))]
+          (let* ([exp (Parse_Enum_Reference_Statement (+ pos 2))]
                  [cases (collect_switch_cases (ParseResult-nextpos exp))]
                  [default (collect_default_case (ParseResult-nextpos cases))])
             (if (is_rightparen (ParseResult-nextpos default))
@@ -265,8 +269,8 @@
 (define (retrieve_switch_cases pos cases)
   (if (< pos amount_of_tokens)
       (if (and (is_leftparen pos) (case_Token? (get_token (add1 pos))))
-          (let* ([exp1 (Parse_Primary (+ pos 2))]
-                 [exp2 (Parse_Primary (ParseResult-nextpos exp1))])
+          (let* ([exp1 (Parse_Enum_Reference_Statement (+ pos 2))]
+                 [exp2 (Parse_Expression (ParseResult-nextpos exp1))])
             (if (is_rightparen (ParseResult-nextpos exp2))
                 (retrieve_switch_cases (add1 (ParseResult-nextpos exp2)) (append cases (list (list exp1 exp2))))
                 (error "invalid syntax, expected: ) but read: " (get_token (ParseResult-nextpos exp2)))))
@@ -282,6 +286,8 @@
                 (error "invalid syntax, expected: ) but read: " (get_token (ParseResult-nextpos exp)))))
           (error "invalid syntax, missing default case" (get_token (add1 pos))))
       (error "ran out of tokens while parsing")))
+
+
 
 ; Check if stmt starts with leftparen and Or token: "(or"
 (define (isOr pos)
@@ -346,7 +352,7 @@
 (define (Parse_Fail_Statement pos)
   (if (< pos amount_of_tokens)
       (if (fail_Token? (get_token pos)) (ParseResult (Fail_Statement (fail_Token-default (get_token pos))) (add1 pos))(Parse_Print_Statement pos))
-      (error "ran out of tokens while parsing")))
+      (ParseResult null pos)))
 
 (define (Parse_Print_Statement pos)
   (if (< pos amount_of_tokens)
@@ -355,9 +361,19 @@
             (if (is_rightparen (ParseResult-nextpos exp))
                 (ParseResult (Print_Statement exp) (add1 (ParseResult-nextpos exp)))
                 (error "invalid syntax, expected: ) but read: " (get_token (ParseResult-nextpos exp)))))
-          (Parse_Expression pos))
-      (error "ran out of tokens while parsing")))
+          (Parse_Enum_Reference_Statement pos))
+      (ParseResult null pos)))
 
+(define (Parse_Enum_Reference_Statement pos)
+  (if (< pos amount_of_tokens)
+      (if (identifier_Token? (get_token pos))
+          (if (period_Token? (get_token (add1 pos)))
+              (if (identifier_Token? (get_token (+ pos 2)))
+                  (ParseResult (Enum_Reference_Statement (identifier_Token-value (get_token pos)) (identifier_Token-value (get_token (+ pos 2)))) (+ pos 3))
+                  (error "expected an enum case but read " (get_token (+ pos 2))))
+              (Parse_Expression pos))
+          (Parse_Expression pos))
+      (ParseResult null pos)))
 
 (define (Parse_Expression pos)
   (if (< pos amount_of_tokens)
@@ -636,6 +652,6 @@
         (toplevelparse (ParseResult-nextpos result) (append results (list result))))
       results))
 
+
 (define ast_list (toplevelparse 0 (list)))
-ast_list
 (provide ast_list)

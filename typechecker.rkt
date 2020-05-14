@@ -54,25 +54,33 @@
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters exp)) (ParseResult-result (Function_Expression-body exp)) (ParseResult-result (Function_Expression-returned exp))) (error name " has already been defined")))]
     [(Call_Expression? exp) (type_check_call_expression gamma (ParseResult-result (Call_Expression-identifier exp)) (ParseResult-result (Call_Expression-arguments exp)))]
     [(Print_Statement? exp) (type_of gamma (ParseResult-result (Print_Statement-exp exp)))]
-    [(Enum_Statement? exp) (type_check_enum_statement gamma (ParseResult-result (Enum_Statement-identifier exp)) (ParseResult-result (Enum_Statement-cases exp)))]
+    [(Enum_Statement? exp) (type_check_enum_statement gamma (Variable_Expression-value (ParseResult-result (Enum_Statement-identifier exp))) (ParseResult-result (Enum_Statement-cases exp)))]
     [(Switch_Statement? exp) (type_check_switch_statement gamma (ParseResult-result (Switch_Statement-exp exp)) (ParseResult-result (Switch_Statement-cases exp)) (ParseResult-result (Switch_Statement-default exp)))]
+    [(Enum_Reference_Statement? exp) (type_check_enum_reference gamma (Enum_Reference_Statement-enum_name exp) (Enum_Reference_Statement-enum_case exp))]
     [(ParseResult? exp) (type_of gamma (ParseResult-result exp))]
     [else (error "unrecognized expression") null]))
 
 
+(define (type_check_enum_reference gamma enum_name enum_case)
+  (if (hash-has-key? gamma (string-append enum_name (string-append "." enum_case)))
+      (hash-ref gamma (string-append enum_name (string-append "." enum_case)))
+      (error "enum case, " enum_case ", has not been declared.")))
+
 (define (type_check_enum_statement gamma name cases)
   (if (hash-has-key? gamma name)
       (error "identifier " name " has already been declared.")
-      (type_check_enum_cases gamma cases (list)))
+      (for-each (lambda (arg)
+                  (hash-set! gamma (string-append name (string-append "." arg)) (Enum_Type)))
+                (type_check_enum_cases gamma cases (list))))
   (hash-set! gamma name (Enum_Type))
   (hash-ref gamma name))
 
 
 (define (type_check_enum_cases gamma cases collection)
   (if (null? cases)
-      (Enum_Type)
-      (if (and (not (hash-has-key? gamma (Variable_Expression-value (ParseResult-result (first cases))))) (not (member collection (Variable_Expression-value (ParseResult-result (first cases))))))
-          (type_check_enum_cases gamma (rest cases) (append collection (list (first cases))))
+      collection
+      (if (and (not (hash-has-key? gamma (Variable_Expression-value (ParseResult-result (first cases))))) (not (member (Variable_Expression-value (ParseResult-result (first cases))) collection)))
+          (type_check_enum_cases gamma (rest cases) (append collection (list (Variable_Expression-value (ParseResult-result (first cases))))))
           (error "identifier " (Variable_Expression-value (ParseResult-result (first cases))) " has already been declared."))))
 
 (define (type_check_switch_statement gamma exp cases default)
@@ -83,7 +91,7 @@
         (error "type of case does not match type of: " exp_type))))
 
 (define (type_check_switch_case copy exp_type cases)
-  (if (null? (cases))
+  (if (null? cases)
       exp_type
       (if (equal? (object-name exp_type) (object-name (type_of copy (first (first cases)))))
           (type_check_a_switch_case_body copy exp_type (rest cases) (ParseResult-result (second (first cases))))
