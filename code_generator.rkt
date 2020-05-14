@@ -30,8 +30,17 @@
     [(Function_Expression? exp) (generate_clause (ParseResult-result (Function_Expression-identifier exp)) (ParseResult-result (Function_Expression-parameters exp)) (ParseResult-result (Function_Expression-body exp)) (ParseResult-result (Function_Expression-returned exp)))]
     [(If_Expression? exp) (generate_if_expression (ParseResult-result (If_Expression-gaurd exp)) (ParseResult-result (If_Expression-ifTrue exp)) (ParseResult-result (If_Expression-ifFalse exp)))]
     [(Assignment_Statement? exp) (generate_assignment_statement (ParseResult-result (Assignment_Statement-identifier exp)) (ParseResult-result (Assignment_Statement-exp exp)))]
+    [(Enum_Statement? exp) (generate_enum_statement (Variable_Expression-value (ParseResult-result (Enum_Statement-identifier exp))) (ParseResult-result (Enum_Statement-cases exp)))]
+    [(Enum_Reference_Statement? exp) (generate_enum_reference_statement (Enum_Reference_Statement-enum_name exp) (Enum_Reference_Statement-enum_case))]
     [(ParseResult? exp) (generate_expression (ParseResult-result exp))]
     [else (error "temporary" exp)]))
+
+
+(define (generate_enum_statement name cases)
+  (string-join (map (lambda (arg)  (string-join (list name "(" arg ").") ""))) ""))
+
+(define (generate_enum_reference_statement name case)
+  (string-join (list name "(" case ")")))
 
 
 (define (grab_call_arguments arguments collection)
