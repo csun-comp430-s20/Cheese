@@ -5,19 +5,24 @@
 
 (define nested #false)
 
-(define (unwrap exp_or_stmt) (ParseResult-result exp_or_stmt))
-
-(define closure_rule "call_closure(Definition, Params) :- copy_term(Definition, (Params :- Body)), call(Body).")
-
 (define retval_count 0)
 
-(define generate_Retval (let ([i retval_count]) (set! retval_count (add1 retval_count)) (string-join (list "Retval" i) "")))
+(define generate_Retval (let ([i retval_count]) (set! retval_count (add1 retval_count)) (string-join (list "Retval" (~a i)) "")))
+
+(define (unwrap exp_or_stmt) (ParseResult-result exp_or_stmt))
+
+(define closure_rule (let ([retval1 generate_Retval] [retval2 generate_Retval] [retval3 generate_Retval]) (string-join (list "call_closure(" retval1 ", " retval2 ") :- copy_term("retval1 ", (" retval2 " :- " retval3")), call(Body)."))))
+
+(define switch_rule (let ([retval1 generate_Retval] [retval2 generate_Retval] [retval3 generate_Retval] [retval4 generate_Retval]) (string-join (list "switch(" retval1 ", [" retval2 ":" retval3 "|" retval4 "]) :- ((" retval1 "=" retval2 " ; " retval2 " == \"default\") -> call(" retval3 ") ; switch(" retval1 ", " retval4 ")).") "")))
+
+
 
 (define (generate_assignment_statement name exp)
   (cond
     [(or (Additive_Expression? exp) (Multiplicative_Expression? exp)) (string-join (list name "is" (generate_additive_or_multiplicative_expression exp) "\n")"")]
     [(Integer_Expression? exp) (string-join (list name "is" (generate_expression exp)))]
     [(Call_Expression? exp) (let ([retval generate_Retval]) (string-join (list (generate_call_expression (unwrap (Call_Expression-identifier exp)) (unwrap (Call_Expression-arguments exp)) retval) ", " name " = " retval) ""))]
+    [(Function_Expression? exp ) (let ([retval generate_Retval]) (string-join (list (generate_clause (unwrap (Function_Expression-identifier exp)) (unwrap (Function_Expression-parameters exp)) (unwrap (Function_Expression-body exp)) (unwrap (Function_Expression-returned exp)) generate_Retval) ", " retval " = " retval) ""))]
     [else (string-join (list name "=" (generate_expression exp)))]))
 
 (define (generate_additive_or_multiplicative_expression exp)
@@ -39,13 +44,22 @@
     [(Boolean_Operation_Expression? exp) (string-join (list (generate_expression (unwrap (Boolean_Operation_Expression-primary1))) (unwrap (Boolean_Operation_Expression-operand exp)) (generate_expression (unwrap (Boolean_Operation_Expression-primary2 exp))))"")]
     [(or (Additive_Expression? exp) (Multiplicative_Expression? exp)) (generate_additive_or_multiplicative_expression exp)]
     [(Call_Expression? exp) (generate_call_expression (unwrap (Call_Expression-identifier exp)) (unwrap (Call_Expression-arguments exp)) generate_Retval)]
-    [(Function_Expression? exp) (generate_clause (unwrap (Function_Expression-identifier exp)) (unwrap (Function_Expression-parameters exp)) (unwrap (Function_Expression-body exp)) (unwrap (Function_Expression-returned exp)))]
+    [(Function_Expression? exp) (generate_clause (unwrap (Function_Expression-identifier exp)) (unwrap (Function_Expression-parameters exp)) (unwrap (Function_Expression-body exp)) (unwrap (Function_Expression-returned exp)) generate_Retval)]
     [(If_Expression? exp) (generate_if_expression (unwrap (If_Expression-gaurd exp)) (unwrap (If_Expression-ifTrue exp)) (unwrap (If_Expression-ifFalse exp)))]
     [(Assignment_Statement? exp) (generate_assignment_statement (generate_expression (unwrap (Assignment_Statement-identifier exp))) (unwrap (Assignment_Statement-exp exp)))]
     [(Enum_Statement? exp) (generate_enum_statement (Variable_Expression-value (ParseResult-result (Enum_Statement-identifier exp))) (ParseResult-result (Enum_Statement-cases exp)))]
     [(Enum_Reference_Statement? exp) (generate_enum_reference_statement (Enum_Reference_Statement-enum_name exp) (Enum_Reference_Statement-enum_case))]
+    [(Switch_Statement? exp) (generate_switch_statement (unwrap (Switch_Statement-exp exp)) (unwrap (Switch_Statement-cases exp)) (unwrap (Switch_Statement-default exp)))]
     [(ParseResult? exp) (generate_expression (ParseResult-result exp))]
     [else (error "temporary" exp)]))
+
+
+(define (collect_switch_cases cases)
+  (string-join (list "[" (string-join (map (lambda (arg) (string-join (list (generate_expression (unwrap (first arg))) " : " (generate_expression (unwrap (second arg)))) "")) cases) ", ") "]")))
+
+
+(define (generate_switch_statement exp cases default)
+  (string-join (list "switch(" (generate_expression exp) ", " (collect_switch_cases (append cases (list (list (String_Expression "default") (unwrap (default)))))) ")") ""))
 
 
 (define (generate_call_expression name arguments retval)
@@ -54,7 +68,7 @@
       (string-join (list name "(" (string-replace (grab_call_arguments arguments (list)) ")" ", " retval "))")) "")))
 
 (define (generate_nested_clause name parameters body returned retval)
-  (string-join (list (generate_expression name) " = (" (string-replace (grab_call_arguments parameters (list)) ")" (string-join (list ", " retval ")"))) (generate_clause_body body (list)) ", " (generate_assignment_statement retval returned) ")")"")
+  (string-join (list (string-upcase name) " = (" (string-replace (grab_call_arguments parameters (list)) ")" (string-join (list ", " retval ")"))) (generate_clause_body body (list)) ", " (generate_assignment_statement retval returned) ")")"")
   (set! nested #false))
 
 (define (generate_enum_statement name cases)
@@ -72,8 +86,8 @@
 
 (define (generate_clause name parameters body returned retval)
   (if nested
-      (generate_nested_clause name parameters body returned)
-      (string-append* (list name (string-replace (grab_call_arguments parameters (list)) ")"(string-join (list ", " retval ")"))) " :- " (generate_clause_body body (list)) (string-join (list ", " retval "is " (generate_expression returned))"") "."))))
+      (generate_nested_clause name parameters body returned retval)
+      (string-join (list name (string-replace (grab_call_arguments parameters (list)) ")" (string-join (list ", " retval ")") "")) " :- " (generate_clause_body body (list)) (string-join (list ", " retval "is " (generate_expression returned))"") ".") "")))
 
 (define (generate_clause_body body collection)
   (if (null? body)
