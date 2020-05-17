@@ -345,7 +345,7 @@
 (define (collect_variable_name pos)
   (if (< pos amount_of_tokens)
       (if (identifier_Token? (get_token pos))
-          (ParseResult (identifier_Token-value (get_token pos)) (add1 pos))
+          (ParseResult (Variable_Expression (identifier_Token-value (get_token pos))) (add1 pos))
           (error "invalid syntax, missing variable name"))
       (error "ran out of tokens while parsing")))
 

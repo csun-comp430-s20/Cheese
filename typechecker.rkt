@@ -33,7 +33,7 @@
      (let ([gaurd (type_of gamma (ParseResult-result (If_Expression-gaurd exp)))] [ifTrue (ParseResult-result (If_Expression-ifTrue exp))] [ifFalse (ParseResult-result (If_Expression-ifFalse exp))])
        (if (Bool_Type? gaurd) (check_ifTrue_and_ifFalse gamma ifTrue ifFalse gaurd) (error "gaurd for if expression is type: " gaurd ". Expected type boolean")))]
     [(Assignment_Statement? exp)
-     (let ([tau (determine_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (ParseResult-result (Assignment_Statement-identifier exp))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
+     (let ([tau (determine_type_of (ParseResult-result (Assignment_Statement-type exp)))] [name (Variable_Expression-value (ParseResult-result (Assignment_Statement-identifier exp)))] [e (type_of gamma (ParseResult-result (Assignment_Statement-exp exp)))])
        (if (hash-has-key? gamma name)
            (error "variable " name " has already been declared.")
            (if (equal? (object-name tau) (object-name e))
@@ -50,9 +50,9 @@
                body))
            (error "While statement expected a gaurd of type boolean but was given a gaurd of type: " gaurd)))]
     [(Function_Expression? exp)
-     (let ([type (determine_type_of (ParseResult-result (Function_Expression-type exp)))] [name (ParseResult-result (Function_Expression-identifier exp))])
+     (let ([type (determine_type_of (ParseResult-result (Function_Expression-type exp)))] [name (Variable_Expression-value (ParseResult-result (Function_Expression-identifier exp)))])
        (if (not (hash-has-key? gamma name)) (type_check_function gamma type name (ParseResult-result (Function_Expression-parameters exp)) (ParseResult-result (Function_Expression-body exp)) (ParseResult-result (Function_Expression-returned exp))) (error name " has already been defined")))]
-    [(Call_Expression? exp) (type_check_call_expression gamma (ParseResult-result (Call_Expression-identifier exp)) (ParseResult-result (Call_Expression-arguments exp)))]
+    [(Call_Expression? exp) (type_check_call_expression gamma (Variable_Expression-value (ParseResult-result (Call_Expression-identifier exp))) (ParseResult-result (Call_Expression-arguments exp)))]
     [(Print_Statement? exp) (type_of gamma (ParseResult-result (Print_Statement-exp exp)))]
     [(Enum_Statement? exp) (type_check_enum_statement gamma (Variable_Expression-value (ParseResult-result (Enum_Statement-identifier exp))) (ParseResult-result (Enum_Statement-cases exp)))]
     [(Switch_Statement? exp) (type_check_switch_statement gamma (ParseResult-result (Switch_Statement-exp exp)) (ParseResult-result (Switch_Statement-cases exp)) (ParseResult-result (Switch_Statement-default exp)))]
@@ -182,7 +182,6 @@
       gamma))
 
 (define program (top_level_check ast_list (make-hash)))
-program
 (provide program)
 
 
