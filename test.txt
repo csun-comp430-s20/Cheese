@@ -1,0 +1,19 @@
+(enum y (case jay case scott))
+
+(def int foo (int i) {
+   (def int bar (int j)
+      {} (+ i j))
+   } bar)
+
+(= int t (foo 2))
+(= int peep (t 3))
+
+
+
+(switch y.jay
+    (case y.jay (t 4))
+    (case y.scott (+ peep 6))
+    (default (- peep 2)))
+
+
+
