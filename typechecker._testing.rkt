@@ -191,6 +191,12 @@
 
 (check equal? (object-name (type_of (make-hash) (String_Expression "test"))) (object-name (String_Type)))
 
+(check equal? (object-name (type_of (make-hash) (Boolean_Expression "True "))) (object-name (Boolean_Type)))
+
+(check equal? (object-name (type_of (make-hash) (Boolean_Expression "False "))) (object-name (Boolean_Type)))
+
+(check equal? (object-name (type_of (make-hash) (Enum_Expression "enum"))) (object-name (Enum_Type)))
+
 ;Part 2
 ;When running this file, in the console, it will ask you to input a file to compile. Just put test.txt because this part will have no effect on running this file
 ;If nothing happens then it worked
